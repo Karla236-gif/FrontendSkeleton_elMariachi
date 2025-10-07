@@ -1,0 +1,13 @@
+body {
+  font-family: 'Open Sans', sans-serif;
+}
+
+.hero-carousel img {
+  height: 480px;
+  object-fit: cover;
+}
+
+.card img {
+  height: 220px;
+  object-fit: cover;
+}
