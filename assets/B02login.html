@@ -1,79 +1,49 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" />
   <title>Login — Skeleton</title>
-
-  <!-- Bootstrap -->
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <script src="assets/app.js" defer></script>
 </head>
 <body class="bg-light">
 
-<div class="container py-4">
+  <div class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-12 col-sm-10 col-md-6 col-lg-5">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <h3 class="mb-4 text-center">Iniciar sesión</h3>
 
-  <!-- F1: Tarjeta Login -->
-  <div class="row justify-content-center">
-    <div class="col-12 col-md-6 col-lg-5">
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <h5 class="card-title mb-3">Iniciar sesión</h5>
+            <form id="loginForm" novalidate>
+              <div class="mb-3">
+                <label for="loginEmail" class="form-label">Correo</label>
+                <input id="loginEmail" type="email" class="form-control" placeholder="ana@example.com" required>
+              </div>
 
-          <!-- Formulario: los IDs deben coincidir con app.js -->
-          <form id="loginForm" novalidate>
-            <div class="mb-3">
-              <label for="loginEmail" class="form-label">Correo</label>
-              <input type="email" class="form-control" id="loginEmail" placeholder="ana@example.com" required />
-            </div>
+              <div class="mb-3">
+                <label for="loginPwd" class="form-label">Contraseña</label>
+                <input id="loginPwd" type="password" class="form-control" placeholder="••••••" required>
+              </div>
 
-            <div class="mb-2">
-              <label for="loginPwd" class="form-label">Contraseña</label>
-              <input type="password" class="form-control" id="loginPwd" placeholder="••••••" required />
-            </div>
+              <div class="text-danger small mb-3" id="loginMsg"></div>
 
-            <!-- Mensaje de error -->
-            <div id="loginMsg" class="text-danger small mb-3"></div>
+              <button class="btn btn-primary w-100" type="submit">Ingresar</button>
+            </form>
 
-            <div class="d-grid gap-2">
-              <button type="submit" class="btn btn-dark">Ingresar</button>
-              <a href="index.html" class="btn btn-outline-secondary">Volver al inicio</a>
-            </div>
-          </form>
+            <hr class="my-4">
+            <p class="text-center m-0">
+              <a href="index.html" class="link-secondary">Volver al inicio</a>
+            </p>
 
-          <!-- Tips de prueba -->
-          <div class="mt-3 small text-muted">
-            <strong>Usuarios demo:</strong><br/>
-            ana@example.com / 123456 (cliente)<br/>
-            admin@site.com / admin01 (admin)
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- F2: Gherkin (Escenarios 1,2,3) -->
-  <div class="row mt-4">
-    <div class="col-12 col-lg-8">
-      <div class="p-3 bg-white border rounded">
-        <h6 class="mb-2">Confirmation (Gherkin)</h6>
-        <ul class="mb-0 small">
-          <li><strong>Escenario 1:</strong> Inicio de sesión exitoso → redirige a <code>index.html</code> y guarda sesión en <code>localStorage</code>.</li>
-          <li><strong>Escenario 2:</strong> Credenciales incorrectas → muestra mensaje en <code>#loginMsg</code>.</li>
-          <li><strong>Escenario 3:</strong> Cierre de sesión (desde el navbar) → borra sesión y vuelve al inicio.</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <!-- F3…F6: puedes mantener tus bloques originales si quieres,
-       o dejarlos como comentarios/documentación -->
-
-</div>
-
-<!-- Bootstrap Bundle -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-<!-- Tu lógica -->
-<script src="assets/app.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+
