@@ -1,48 +1,59 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Login — Skeleton</title>
-
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <!-- Tu JS -->
+  <title>Login — El Mariachi</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- tu css opcional -->
+  <!-- <link rel="stylesheet" href="assets/styles.css"> -->
+  <!-- MUY IMPORTANTE: tu JS -->
   <script src="assets/app.js" defer></script>
 </head>
 <body class="bg-light">
 
+  <nav class="navbar navbar-dark bg-dark">
+    <div class="container">
+      <a class="navbar-brand" href="index.html">El Mariachi</a>
+    </div>
+  </nav>
+
   <div class="container py-5">
     <div class="row justify-content-center">
-      <div class="col-sm-10 col-md-6 col-lg-4">
+      <div class="col-12 col-sm-8 col-md-6 col-lg-4">
         <div class="card shadow-sm">
           <div class="card-body">
-            <h1 class="h5 mb-3 text-center">Iniciar sesión</h1>
+            <h1 class="h4 mb-3 text-center">Iniciar sesión</h1>
 
+            <!-- FORMULARIO con los IDs que usa app.js -->
             <form id="loginForm" novalidate>
               <div class="mb-3">
                 <label for="loginEmail" class="form-label">Correo</label>
-                <input type="email" id="loginEmail" class="form-control" required />
+                <input type="email" class="form-control" id="loginEmail" placeholder="ana@example.com" required>
               </div>
-
               <div class="mb-3">
                 <label for="loginPwd" class="form-label">Contraseña</label>
-                <input type="password" id="loginPwd" class="form-control" required />
+                <input type="password" class="form-control" id="loginPwd" placeholder="********" required>
               </div>
-
-              <div id="loginMsg" class="text-danger small mb-2"></div>
-
+              <div class="text-danger small mb-3" id="loginMsg"></div>
               <button type="submit" class="btn btn-primary w-100">Ingresar</button>
             </form>
+
+            <div class="mt-3 text-center">
+              <a href="index.html" class="small">Volver al inicio</a>
+            </div>
           </div>
         </div>
         <p class="text-muted small mt-3">
-          Demo: <code>ana@example.com / 123456</code> ó <code>admin@site.com / admin01</code>
+          Demo: <code>ana@example.com / 123456</code> o <code>admin@site.com / admin01</code>
         </p>
       </div>
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+
 
 
