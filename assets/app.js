@@ -1,51 +1,53 @@
-// Usuarios de demo (sin backend)
+console.log('app.js cargado');
+
+// ====== MOCK DE USUARIOS ======
 const DEMO_USERS = [
   { email: 'ana@example.com',  password: '123456',  name: 'Ana',  role: 'cliente' },
-  { email: 'admin@site.com',   password: 'admin01', name: 'Admin', role: 'admin'  },
+  { email: 'admin@site.com',   password: 'admin01', name: 'Admin', role: 'admin' }
 ];
 
-// Helpers de sesión
+// helpers sesión
 function setSession(user){ localStorage.setItem('mariachi_user', JSON.stringify(user)); }
-function getSession(){ try { return JSON.parse(localStorage.getItem('mariachi_user')) } catch { return null } }
+function getSession(){
+  const raw = localStorage.getItem('mariachi_user');
+  try { return raw ? JSON.parse(raw) : null; } catch { return null; }
+}
 function clearSession(){ localStorage.removeItem('mariachi_user'); }
 
-// Pinta login/logout en la navbar
-document.addEventListener('DOMContentLoaded', ()=>{
-  const authLink = document.getElementById('authLink');
-  if (!authLink) return;
-
-  const user = getSession();
-  if (user) {
-    authLink.textContent = 'Cerrar sesión';
-    authLink.href = '#';
-    authLink.addEventListener('click', (e)=>{
-      e.preventDefault();
-      clearSession();
-      window.location.href = 'index.html';
-    });
-  } else {
-    authLink.textContent = 'Iniciar sesión';
-    authLink.href = 'B02login.html';
-  }
-});
-
-// Login (solo si estamos en B02login.html)
-document.addEventListener('DOMContentLoaded', ()=>{
-  const form = document.getElementById('loginForm');
-  if (!form) return;
-
-  form.addEventListener('submit', (e)=>{
+// login
+const loginForm = document.getElementById('loginForm');
+if (loginForm) {
+  loginForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const email = document.getElementById('loginEmail').value.trim().toLowerCase();
     const pwd   = document.getElementById('loginPwd').value;
-    const msg   = document.getElementById('loginMsg');
+    const msgEl = document.getElementById('loginMsg');
 
     const user = DEMO_USERS.find(u => u.email === email && u.password === pwd);
     if (!user) {
-      msg.textContent = 'Credenciales inválidas';
+      msgEl.textContent = 'Credenciales inválidas';
       return;
     }
     setSession({ name:user.name, email:user.email, role:user.role });
     window.location.href = 'index.html';
   });
-});
+}
+
+// (opcional) actualizar el botón de sesión en el navbar del index
+(function updateAuthLink(){
+  const a = document.getElementById('authLink');
+  if (!a) return;
+  const user = getSession();
+  if (user) {
+    a.textContent = 'Cerrar sesión';
+    a.href = '#';
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      clearSession();
+      location.reload();
+    });
+  } else {
+    a.textContent = 'Iniciar sesión';
+    a.href = 'B02login.html';
+  }
+})();
