@@ -1,3 +1,5 @@
+console.log('app.js cargado');
+
 // ====== MOCK DE USUARIOS (para demo sin API) ======
 const DEMO_USERS = [
   { email: 'ana@example.com',  password: '123456',  name: 'Ana',  role: 'cliente' },
