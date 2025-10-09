@@ -2,12 +2,18 @@ body {
   font-family: 'Open Sans', sans-serif;
 }
 
-.hero-carousel img {
+/* --- Carrusel principal --- */
+.carousel-item img {
   height: 480px;
+  width: 100%;
   object-fit: cover;
+  border-radius: 1rem;
 }
 
+/* --- Tarjetas de productos --- */
 .card img {
   height: 220px;
   object-fit: cover;
+  border-top-left-radius: 1rem;
+  border-top-right-radius: 1rem;
 }
