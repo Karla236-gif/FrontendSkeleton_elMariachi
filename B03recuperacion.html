@@ -1,202 +1,51 @@
-<<<<<<< HEAD
-<!DOCTYPE html><html lang="es"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>B03 – Recuperación</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</head><body>
-<div class="container">
-  <!-- F1: Gherkin (3 escenarios) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Escenario 1/2/3 --></div></div>
-  <!-- F2: Form "Olvidé mi contraseña" -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- input correo + botón ENVIAR --></div></div>
-  <!-- F3: Vista con enlace de recuperación (solo representativo) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Enlace de recuperación --></div></div>
-  <!-- F4: Modal éxito (solicitud enviada) -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- Modal ✔ Aceptar --></div></div>
-  <!-- F5: Modal error (token caducado/ inválido) -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- Modal ✖ Reintentar --></div></div>
-  <!-- F6: Clase "RecuperaciónDeContraseña" -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- correoUsuario, token, fechaExpiracion, valido --></div></div>
-</div>
-</body></html>
-=======
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>B03 – Recuperación</title>
-
-  <!-- Bootstrap -->
+  <title>B03 · Recuperación de Contraseña – El Mariachi</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-
-  <!-- Tu CSS (opcional) -->
-  <link rel="stylesheet" href="assets/styles.css">
-
-  <!-- Base (ajusta si tu carpeta cambia) -->
-  <base href="/FrontendSkeleton_elMariachi-1/">
 </head>
 <body class="bg-light">
 
-  <!-- NAVBAR consistente -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
-    <div class="container-fluid">
-      <a class="navbar-brand fw-bold" href="index.html">🌮 El Mariachi</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ms-auto">
-          <li class="nav-item"><a class="nav-link" href="index.html">Inicio</a></li>
-          <li class="nav-item"><a class="nav-link" href="B02login.html">Login</a></li>
-          <li class="nav-item"><a class="nav-link active" href="B03_recuperacion.html">Recuperación</a></li>
-        </ul>
-      </div>
-    </div>
-  </nav>
-
-  <main class="container py-5">
-    <!-- F1: Gherkin (3 escenarios) -->
-    <section class="mb-4">
-      <h2 class="h5 text-success fw-bold">Escenarios (Gherkin)</h2>
-      <pre class="bg-white border rounded p-3 small mb-0">
-Feature: Recuperación de contraseña
-  Scenario: Solicitud válida
-    Given que estoy en la página de recuperación
-    And ingreso un correo registrado
-    When presiono "Enviar"
-    Then veo un mensaje de éxito indicando que se envió el enlace
-
-  Scenario: Correo no registrado
-    Given que estoy en la página de recuperación
-    And ingreso un correo que no existe
-    When presiono "Enviar"
-    Then veo un mensaje de error indicando que el correo no está registrado
-
-  Scenario: Enlace caducado
-    Given que accedo desde un enlace de recuperación
-    And el token está expirado
-    Then veo un mensaje de error y la opción "Reintentar"
-      </pre>
-    </section>
-
-    <!-- F2: Form "Olvidé mi contraseña" -->
-    <section class="bg-white border rounded shadow-sm p-4" style="max-width: 560px;">
-      <h1 class="h4 mb-3">Olvidé mi contraseña</h1>
-      <form id="recoverForm" novalidate>
-        <div class="mb-3">
-          <label for="recoverEmail" class="form-label">Correo electrónico</label>
-          <input type="email" class="form-control" id="recoverEmail" placeholder="ana@example.com" required>
-          <div class="invalid-feedback">Ingresa un correo válido.</div>
-        </div>
-        <button type="submit" class="btn btn-success">Enviar</button>
-        <a href="B02login.html" class="btn btn-outline-secondary ms-2">Volver al Login</a>
-      </form>
-    </section>
-
-    <!-- F3: Vista con enlace de recuperación (representativa) -->
-    <section class="mt-4">
-      <div class="alert alert-info mb-0">
-        <strong>Ejemplo de enlace:</strong> 
-        <code>https://mariachi.cl/reset?token=ABC123&email=ana%40example.com</code>
-      </div>
-    </section>
-  </main>
-
-  <!-- F4: Modal éxito -->
-  <div class="modal fade" id="okModal" tabindex="-1" aria-labelledby="okModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header border-0">
-          <h5 class="modal-title" id="okModalLabel">¡Solicitud enviada!</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-        </div>
-        <div class="modal-body">
-          Te enviamos un enlace de recuperación a <span id="okEmail" class="fw-bold"></span>. Revisa tu bandeja y spam.
-        </div>
-        <div class="modal-footer border-0">
-          <button type="button" class="btn btn-success" data-bs-dismiss="modal">Aceptar</button>
-        </div>
-      </div>
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg bg-dark navbar-dark">
+  <div class="container">
+    <a class="navbar-brand" href="index.html">El Mariachi</a>
+    <div class="navbar-nav">
+      <a class="nav-link" href="B04catalogo.html">Catálogo</a>
+      <a class="nav-link" href="B05busqueda.html">Búsqueda</a>
+      <a class="nav-link" href="B01registro.html">Registro</a>
+      <a class="nav-link" href="B02login.html">Login</a>
     </div>
   </div>
+</nav>
 
-  <!-- F5: Modal error -->
-  <div class="modal fade" id="errModal" tabindex="-1" aria-labelledby="errModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header border-0">
-          <h5 class="modal-title" id="errModalLabel">No pudimos procesar tu solicitud</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-        </div>
-        <div class="modal-body" id="errMsg">
-          Token inválido o correo no registrado. Intenta nuevamente.
-        </div>
-        <div class="modal-footer border-0">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Reintentar</button>
-        </div>
-      </div>
+<!-- Main -->
+<main class="container py-5" style="max-width: 720px;">
+  <h1 class="mb-4 text-center fw-bold">Recuperar Contraseña</h1>
+  <p class="text-center text-muted mb-4">
+    Ingresa tu correo registrado y te enviaremos un enlace para restablecer tu contraseña.
+  </p>
+
+  <form class="row gy-3" onsubmit="event.preventDefault(); alert('Demo: enlace de recuperación enviado');">
+    <div class="col-12">
+      <label class="form-label">Correo electrónico</label>
+      <input type="email" class="form-control" placeholder="ejemplo@email.com" required>
     </div>
+
+    <div class="col-12 d-flex justify-content-between">
+      <a href="B02login.html" class="btn btn-outline-secondary">Volver al Login</a>
+      <button class="btn btn-primary">Enviar enlace</button>
+    </div>
+  </form>
+
+  <div class="text-center mt-4 small text-muted">
+    Recibirás un correo con las instrucciones en los próximos minutos.
   </div>
+</main>
 
-  <!-- Bootstrap JS -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-  <!-- F6: Clase "RecuperaciónDeContraseña" + lógica demo -->
-  <script>
-    class RecuperacionDeContrasena {
-      constructor(correoUsuario) {
-        this.correoUsuario = correoUsuario;
-        this.token = Math.random().toString(36).slice(2);
-        this.fechaExpiracion = new Date(Date.now() + 1000 * 60 * 15); // 15 min
-        this.valido = true;
-      }
-      estaVigente() {
-        return this.valido && new Date() < this.fechaExpiracion;
-      }
-      invalidar() { this.valido = false; }
-    }
-
-    // Mock de usuarios existentes
-    const EXISTENTES = ['ana@example.com', 'admin@site.com'];
-
-    const form = document.getElementById('recoverForm');
-    const emailInput = document.getElementById('recoverEmail');
-
-    const okModal = new bootstrap.Modal(document.getElementById('okModal'));
-    const errModal = new bootstrap.Modal(document.getElementById('errModal'));
-
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-
-      // Validación HTML5
-      if (!emailInput.checkValidity()) {
-        emailInput.classList.add('is-invalid');
-        return;
-      } else {
-        emailInput.classList.remove('is-invalid');
-      }
-
-      const email = emailInput.value.trim().toLowerCase();
-
-      // Simulación: si el correo existe -> éxito; si no -> error
-      if (EXISTENTES.includes(email)) {
-        const flow = new RecuperacionDeContrasena(email);
-        if (flow.estaVigente()) {
-          document.getElementById('okEmail').textContent = email;
-          okModal.show();
-          form.reset();
-        } else {
-          document.getElementById('errMsg').textContent = 'El enlace ha caducado. Solicita uno nuevo.';
-          errModal.show();
-        }
-      } else {
-        document.getElementById('errMsg').textContent = 'El correo ingresado no está registrado.';
-        errModal.show();
-      }
-    });
-  </script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
->>>>>>> 011c4907a04b6e7325327640db8eab8bde5a54b6
+
