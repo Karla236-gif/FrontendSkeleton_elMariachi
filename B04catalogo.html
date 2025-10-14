@@ -1,25 +1,111 @@
-<!DOCTYPE html><html lang="es"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>B04 – Catálogo</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>B04 · Catálogo – El Mariachi</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg bg-dark navbar-dark">
+  <div class="container">
+    <a class="navbar-brand" href="index.html">El Mariachi</a>
+    <div class="navbar-nav">
+      <a class="nav-link active" href="B04catalogo.html">Catálogo</a>
+      <a class="nav-link" href="B05busqueda.html">Búsqueda</a>
+      <a class="nav-link" href="B01registro.html">Registro</a>
+      <a class="nav-link" href="B02login.html">Login</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Main -->
+<main class="container py-5">
+  <h1 class="mb-4 text-center fw-bold">🌮 Nuestro Catálogo</h1>
+  <div class="row g-4">
+
+    <!-- Tarjeta 1 -->
+    <div class="col-md-4">
+      <div class="card h-100 shadow-sm">
+        <img src="assets/ImagenesMariachi/tacos1.jpg" class="card-img-top" alt="Tacos al Pastor">
+        <div class="card-body">
+          <h5 class="card-title">Tacos al Pastor</h5>
+          <p class="card-text">Deliciosos tacos tradicionales con piña y salsa verde.</p>
+          <button class="btn btn-primary w-100">Agregar al carrito</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tarjeta 2 -->
+    <div class="col-md-4">
+      <div class="card h-100 shadow-sm">
+        <img src="assets/ImagenesMariachi/combo1.jpg" class="card-img-top" alt="Combo 1">
+        <div class="card-body">
+          <h5 class="card-title">Combo 1</h5>
+          <p class="card-text">Incluye tacos, burrito y bebida a elección.</p>
+          <button class="btn btn-primary w-100">Agregar al carrito</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tarjeta 3 -->
+    <div class="col-md-4">
+      <div class="card h-100 shadow-sm">
+        <img src="assets/ImagenesMariachi/burrito1.jpg" class="card-img-top" alt="Burrito">
+        <div class="card-body">
+          <h5 class="card-title">Burrito</h5>
+          <p class="card-text">Relleno de carne, porotos y queso fundido.</p>
+          <button class="btn btn-primary w-100">Agregar al carrito</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tarjeta 4 -->
+    <div class="col-md-4">
+      <div class="card h-100 shadow-sm">
+        <img src="assets/ImagenesMariachi/combo2a.jpg" class="card-img-top" alt="Combo 2">
+        <div class="card-body">
+          <h5 class="card-title">Combo 2</h5>
+          <p class="card-text">Dos burritos y bebida. Ideal para compartir.</p>
+          <button class="btn btn-primary w-100">Agregar al carrito</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tarjeta 5 -->
+    <div class="col-md-4">
+      <div class="card h-100 shadow-sm">
+        <img src="assets/ImagenesMariachi/tacos2.jpg" class="card-img-top" alt="Tacos Mixtos">
+        <div class="card-body">
+          <h5 class="card-title">Tacos Mixtos</h5>
+          <p class="card-text">Tres tacos surtidos con diferentes carnes y salsas.</p>
+          <button class="btn btn-primary w-100">Agregar al carrito</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tarjeta 6 -->
+    <div class="col-md-4">
+      <div class="card h-100 shadow-sm">
+        <img src="assets/ImagenesMariachi/combo3.webp" class="card-img-top" alt="Combo 3">
+        <div class="card-body">
+          <h5 class="card-title">Combo 3</h5>
+          <p class="card-text">Tacos, nachos y bebida refrescante.</p>
+          <button class="btn btn-primary w-100">Agregar al carrito</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer class="text-center py-4 mt-5 bg-dark text-white">
+  <p class="m-0">© 2025 El Mariachi – Todos los derechos reservados.</p>
+</footer>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</head><body>
-<div class="container">
-  <!-- F1: Gherkin (visualización, paginación, última página) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Gherkin --></div></div>
-  <!-- F2: Carrusel / banner de productos -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Carrusel general --></div></div>
-  <!-- F3: Buscador -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- input Buscar... --></div></div>
-  <!-- F4: “Más vendido” -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- badge/alert --></div></div>
-  <!-- F5: Grid de cards de productos -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- 3 cards producto --></div></div>
-  <!-- F6: Controles de paginación -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- « Anterior | Siguiente » --></div></div>
-  <!-- F7: Estado vacío (no hay más productos) -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- Empty state --></div></div>
-  <!-- F8: Clase "Catálogo" (listaProductos, páginaActual, productosPorPágina, totalPáginas) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Clase Catálogo --></div></div>
-</div>
-</body></html>
+</body>
+</html>
+
