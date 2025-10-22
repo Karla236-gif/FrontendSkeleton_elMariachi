@@ -1,27 +1,366 @@
-<!DOCTYPE html><html lang="es"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>B26 – Generación de órdenes</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>B23 – Generación de órdenes (cocina)</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</head><body><div class="container">
+<style>
+  body{ background:#f7f7fb }
+  .chip{ padding:.15rem .55rem; border-radius:999px; font-size:.78rem; border:1px solid #e5e7eb; background:#fff }
+  .printer-area{ max-width:900px; margin:0 auto }
+  .table-sm td, .table-sm th{ padding:.45rem .5rem }
+</style>
+</head>
+<body>
+<div class="container py-4">
 
-  <!-- F1: Gherkin (generación automática, visualización, reintento) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Gherkin --></div></div>
+  <div class="d-flex align-items-center gap-2 mb-3">
+    <h3 class="m-0">🍳 Generación de órdenes de cocina</h3>
+    <span class="text-muted">B23</span>
+  </div>
 
-  <!-- F2: Escenario 1: orden generada automáticamente -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- mensaje ✔ “Orden creada” --></div></div>
+  <!-- ====== Gherkin (resumen corto) ====== -->
+  <div class="card mb-3">
+    <div class="card-body py-2">
+      <strong>Escenarios:</strong>
+      <span class="chip">1) Generación automática</span>
+      <span class="chip">2) Visualización / impresión</span>
+      <span class="chip">3) Falla y reintento</span>
+    </div>
+  </div>
 
-  <!-- F3: Escenario 2: visualización / impresión -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- tabla con ítems, cantidades, hora --></div></div>
+  <!-- ====== Barra de acciones ====== -->
+  <div class="d-flex flex-wrap gap-2 mb-3">
+    <button id="btnConfirmarPago" class="btn btn-success">Confirmar pago (genera orden)</button>
+    <button id="btnSeed" class="btn btn-primary">Cargar demo</button>
+    <button id="btnClear" class="btn btn-outline-danger">Vaciar órdenes</button>
+  </div>
 
-  <!-- F4: Escenario 3: error y reintento -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- botón “Reintentar” + alerta registro --></div></div>
+  <!-- ====== Mensajes ====== -->
+  <div id="msg" class="mb-3"></div>
 
-  <!-- F5: Panel cocina (vista simple de órdenes activas) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- listado de órdenes pendientes --></div></div>
+  <!-- ====== Tabla de Órdenes ====== -->
+  <div class="card mb-4">
+    <div class="card-header bg-white"><strong>Órdenes generadas</strong></div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table id="tblOrdenes" class="table table-sm align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>ID Orden</th>
+              <th>ID Pedido</th>
+              <th>Creación</th>
+              <th>Confirmación</th>
+              <th>Items</th>
+              <th>Estado</th>
+              <th>Resultado</th>
+              <th>Intentos</th>
+              <th class="text-end">Acciones</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <small class="text-muted">Estados: <span class="chip">pendiente</span> <span class="chip">en_proceso</span> <span class="chip">error</span> <span class="chip">finalizada</span></small>
+    </div>
+  </div>
 
-  <!-- F6: Clase "OrdenCocina" (idOrden, idPedido, fechaCreacion, horaConfirmacion, items[], estado, resultado, intentos) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Clase OrdenCocina --></div></div>
+  <!-- ====== Panel para cocina (ordenes activas) ====== -->
+  <div class="card">
+    <div class="card-header bg-white"><strong>Panel cocina – Órdenes activas</strong></div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table id="tblCocina" class="table table-sm align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Orden</th>
+              <th>Pedido</th>
+              <th>Hora</th>
+              <th>Detalle</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <small class="text-muted">Muestra órdenes <em>pendientes / en_proceso</em>.</small>
+    </div>
+  </div>
 
-</div></body></html>
+</div>
 
+<!-- ====== Modal impresión ====== -->
+<div class="modal fade" id="modalPrint" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Orden de cocina – Vista/Impresión</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div id="printArea" class="printer-area"></div>
+      </div>
+      <div class="modal-footer">
+        <button id="btnImprimir" class="btn btn-primary">Imprimir</button>
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ==========================================================
+   Util & Persistencia
+========================================================== */
+const KEY = 'b23_ordenes';
+const j = (x)=> JSON.stringify(x);
+const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { return []; } };
+const save = (l) => localStorage.setItem(KEY, j(l));
+const nextId = (l) => (l.at(-1)?.idOrden || 0) + 1;
+const fmt = (iso)=> new Date(iso).toLocaleString('es-CL');
+const alertOK    = (t)=> `<div class="alert alert-success py-2">${t}</div>`;
+const alertInfo  = (t)=> `<div class="alert alert-info py-2">${t}</div>`;
+const alertWarn  = (t)=> `<div class="alert alert-warning py-2">${t}</div>`;
+const alertError = (t)=> `<div class="alert alert-danger py-2">${t}</div>`;
+
+/* ==========================================================
+   “Clase” OrdenCocina (objeto literal)
+   {
+     idOrden, idPedido, fechaCreacion, horaConfirmacion,
+     items: [{nombre, cantidad}], estado, resultado, intentos, lastError?
+   }
+========================================================== */
+function crearOrdenDesdePedido(pedido){
+  const lista = load();
+  const orden = {
+    idOrden: nextId(lista),
+    idPedido: pedido.idPedido,
+    fechaCreacion: new Date().toISOString(),
+    horaConfirmacion: new Date().toISOString(),
+    items: pedido.items.map(it => ({ nombre: it.nombre, cantidad: it.cantidad })),
+    estado: 'pendiente',
+    resultado: 'OK',
+    intentos: 0,
+  };
+  lista.push(orden);
+  save(lista);
+  return orden;
+}
+
+/* ==========================================================
+   Render tablas
+========================================================== */
+function render(){
+  const lista = load();
+  const tb = document.querySelector('#tblOrdenes tbody');
+  tb.innerHTML = '';
+
+  if(!lista.length){
+    tb.innerHTML = `<tr><td colspan="9" class="text-center text-muted">Sin órdenes aún.</td></tr>`;
+  } else {
+    for(const o of lista){
+      const tr = document.createElement('tr');
+
+      const itemsTxt = o.items.map(x=>`${x.cantidad}× ${x.nombre}`).join(', ');
+      const estadoBadge =
+        o.estado === 'error' ? `<span class="badge text-bg-danger">error</span>` :
+        o.estado === 'en_proceso' ? `<span class="badge text-bg-warning">en proceso</span>` :
+        o.estado === 'finalizada' ? `<span class="badge text-bg-success">finalizada</span>` :
+        `<span class="badge text-bg-secondary">pendiente</span>`;
+
+      tr.innerHTML = `
+        <td>${o.idOrden}</td>
+        <td>${o.idPedido}</td>
+        <td>${fmt(o.fechaCreacion)}</td>
+        <td>${fmt(o.horaConfirmacion)}</td>
+        <td>${itemsTxt}</td>
+        <td>${estadoBadge}</td>
+        <td>${o.resultado}${o.lastError ? ` <small class="text-danger">(${o.lastError})</small>` : ''}</td>
+        <td>${o.intentos}</td>
+        <td class="text-end">
+          <div class="btn-group">
+            <button class="btn btn-outline-secondary btn-sm" onclick="verOrden(${o.idOrden})">Ver</button>
+            <button class="btn btn-outline-primary btn-sm" onclick="imprimirOrden(${o.idOrden})">Imprimir</button>
+            ${o.estado === 'error'
+              ? `<button class="btn btn-danger btn-sm" onclick="reintentar(${o.idOrden})">Reintentar</button>`
+              : `<button class="btn btn-outline-success btn-sm" onclick="pasarAProceso(${o.idOrden})">A proceso</button>`}
+          </div>
+        </td>
+      `;
+      tb.appendChild(tr);
+    }
+  }
+
+  // Cocina: solo activas
+  const coc = document.querySelector('#tblCocina tbody');
+  coc.innerHTML = '';
+  const activas = lista.filter(x => ['pendiente','en_proceso'].includes(x.estado));
+  if(!activas.length){
+    coc.innerHTML = `<tr><td colspan="5" class="text-center text-muted">Sin órdenes activas.</td></tr>`;
+  } else {
+    for(const o of activas){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>#${o.idOrden}</td>
+        <td>${o.idPedido}</td>
+        <td>${new Date(o.fechaCreacion).toLocaleTimeString('es-CL')}</td>
+        <td>${o.items.map(x=>`${x.cantidad}× ${x.nombre}`).join(', ')}</td>
+        <td>${o.estado}</td>
+      `;
+      coc.appendChild(tr);
+    }
+  }
+}
+
+/* ==========================================================
+   Acciones
+========================================================== */
+function confirmarPago(){
+  // Pedido “ejemplo” (normalmente vendría del flujo de ventas)
+  const pedido = {
+    idPedido: Math.floor(10000 + Math.random()*89999),
+    items: [
+      { nombre:'Tacos al pastor', cantidad:2 },
+      { nombre:'Quesadilla', cantidad:1 },
+    ]
+  };
+  const o = crearOrdenDesdePedido(pedido);
+  document.getElementById('msg').innerHTML = alertOK(`Orden #${o.idOrden} creada automáticamente a partir del pago del pedido ${o.idPedido}.`);
+  render();
+}
+
+function pasarAProceso(id){
+  const lista = load();
+  const o = lista.find(x=>x.idOrden===id);
+  if(!o) return;
+  // Simulamos a veces un error de generación/imposición (escenario 3)
+  const azar = Math.random();
+  o.intentos++;
+  if(azar < 0.25){
+    o.estado = 'error';
+    o.resultado = 'ERROR';
+    o.lastError = 'Falla en cola de impresión';
+  } else {
+    o.estado = 'en_proceso';
+    o.resultado = 'OK';
+    o.lastError = undefined;
+  }
+  save(lista);
+  document.getElementById('msg').innerHTML = (o.estado==='error')
+    ? alertError(`La orden #${o.idOrden} falló al pasar a proceso. Puedes reintentar.`)
+    : alertInfo(`La orden #${o.idOrden} pasó a proceso en cocina.`);
+  render();
+}
+
+function reintentar(id){
+  const lista = load();
+  const o = lista.find(x=>x.idOrden===id);
+  if(!o) return;
+  o.intentos++;
+  // En reintento elevamos la probabilidad de éxito
+  const azar = Math.random();
+  if(azar < 0.8){
+    o.estado = 'en_proceso';
+    o.resultado = 'OK';
+    o.lastError = undefined;
+    document.getElementById('msg').innerHTML = alertOK(`Reintento exitoso: orden #${o.idOrden} pasó a proceso.`);
+  } else {
+    o.estado = 'error';
+    o.resultado = 'ERROR';
+    o.lastError = 'Reintento falló';
+    document.getElementById('msg').innerHTML = alertWarn(`Reintento falló nuevamente en la orden #${o.idOrden}.`);
+  }
+  save(lista);
+  render();
+}
+
+/* ===== Ver / Imprimir ===== */
+const modalPrint = new bootstrap.Modal('#modalPrint');
+function verOrden(id){
+  const o = load().find(x=>x.idOrden===id);
+  if(!o) return;
+  const html = `
+    <div class="mb-3">
+      <h4 class="mb-1">Orden #${o.idOrden}</h4>
+      <div class="text-muted">Pedido: ${o.idPedido} · Creación: ${fmt(o.fechaCreacion)} · Confirmación: ${fmt(o.horaConfirmacion)}</div>
+      <div>Estado: <strong>${o.estado}</strong> · Intentos: ${o.intentos}</div>
+    </div>
+    <table class="table table-bordered">
+      <thead><tr><th>Item</th><th class="text-end">Cant.</th></tr></thead>
+      <tbody>
+        ${o.items.map(i=>`<tr><td>${i.nombre}</td><td class="text-end">${i.cantidad}</td></tr>`).join('')}
+      </tbody>
+    </table>
+  `;
+  document.getElementById('printArea').innerHTML = html;
+  modalPrint.show();
+}
+function imprimirOrden(id){
+  verOrden(id);
+}
+document.getElementById('btnImprimir').addEventListener('click', ()=> window.print());
+
+/* ==========================================================
+   Seeds & Limpieza
+========================================================== */
+function seed(){
+  const now = Date.now();
+  const basePedido = (id, items)=>({ idPedido:id, items });
+  const lote = [
+    // OK
+    {
+      idOrden: 1,
+      idPedido: 10025,
+      fechaCreacion: new Date(now-3600_000).toISOString(),
+      horaConfirmacion: new Date(now-3600_000).toISOString(),
+      items: basePedido(10025,[{nombre:'Tacos',cantidad:3},{nombre:'Nachos',cantidad:1}]).items,
+      estado: 'en_proceso',
+      resultado:'OK',
+      intentos:1
+    },
+    // ERROR (para probar reintento)
+    {
+      idOrden: 2,
+      idPedido: 10026,
+      fechaCreacion: new Date(now-3400_000).toISOString(),
+      horaConfirmacion: new Date(now-3400_000).toISOString(),
+      items: basePedido(10026,[{nombre:'Burrito',cantidad:2}]).items,
+      estado: 'error',
+      resultado:'ERROR',
+      lastError:'Impresora sin papel',
+      intentos:2
+    },
+    // PENDIENTE
+    {
+      idOrden: 3,
+      idPedido: 10027,
+      fechaCreacion: new Date(now-3000_000).toISOString(),
+      horaConfirmacion: new Date(now-3000_000).toISOString(),
+      items: basePedido(10027,[{nombre:'Quesadilla',cantidad:1},{nombre:'Agua Jamaica',cantidad:2}]).items,
+      estado: 'pendiente',
+      resultado:'OK',
+      intentos:0
+    }
+  ];
+  save(lote);
+  document.getElementById('msg').innerHTML = alertInfo('Se cargaron 3 órdenes de demo (una con error para probar reintento).');
+  render();
+}
+function clearAll(){
+  localStorage.removeItem(KEY);
+  document.getElementById('msg').innerHTML = alertWarn('Órdenes eliminadas.');
+  render();
+}
+
+/* ==========================================================
+   Wire-up
+========================================================== */
+document.getElementById('btnConfirmarPago').addEventListener('click', confirmarPago);
+document.getElementById('btnSeed').addEventListener('click', seed);
+document.getElementById('btnClear').addEventListener('click', clearAll);
+window.addEventListener('load', render);
+</script>
+</body>
+</html>

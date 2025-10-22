@@ -1,28 +1,341 @@
-<!DOCTYPE html><html lang="es"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>B20 – Gestión de cuentas</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</head><body><div class="container">
+<style>
+  body{background:#f7f7fb}
+  .chip{font-size:.75rem;border:1px solid #e5e7eb;border-radius:999px;padding:.15rem .55rem;background:#fff}
+</style>
+</head>
+<body>
+<div class="container py-4">
 
-  <!-- F1: Gherkin (alta, correo duplicado, cambio de rol) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Gherkin --></div></div>
+  <!-- F1: Gherkin (alta exitosa / correo no válido / actualización de datos) -->
+  <div class="alert alert-secondary">
+    <strong>Escenarios (Gherkin)</strong><br>
+    1) <em>Alta exitosa</em>: si la “API” valida el correo &rarr; se crea el usuario.<br>
+    2) <em>Correo no válido</em>: si la “API” rechaza el correo &rarr; se muestra el motivo.<br>
+    3) <em>Actualización de datos</em>: editar teléfono/dirección/rol &rarr; cambios visibles de inmediato.
+  </div>
 
   <!-- F2: Formulario alta usuario -->
-  <div class="row"><div class="col-12 d-flex justify-content-start">
-    <!-- nombre, correo, rol (select), estado (activo/inactivo) -->
-  </div></div>
+  <section class="card p-3 mb-4">
+    <h5 class="mb-3">➕ Alta de usuario</h5>
+    <div class="row g-3">
+      <div class="col-md-3">
+        <label class="form-label">Nombre *</label>
+        <input id="uNombre" class="form-control" placeholder="María López">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Correo *</label>
+        <input id="uCorreo" type="email" class="form-control" placeholder="maria@demo.com">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Rol *</label>
+        <select id="uRol" class="form-select">
+          <option value="cliente">cliente</option>
+          <option value="cajero">cajero</option>
+          <option value="admin">admin</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Estado</label>
+        <div class="form-check mt-2">
+          <input id="uActivo" class="form-check-input" type="checkbox" checked>
+          <label class="form-check-label">Activo</label>
+        </div>
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <button id="btnCrear" class="btn btn-success w-100">Crear usuario</button>
+      </div>
+    </div>
+    <div id="altaMsg" class="mt-3"></div>
+  </section>
 
-  <!-- F3: Escenario 1: alta exitosa -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- Modal ✔ Usuario creado --></div></div>
+  <!-- Lista / gestión -->
+  <section class="card p-3">
+    <div class="d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">👥 Usuarios</h5>
+      <div class="d-flex gap-2">
+        <button id="btnSeed" class="btn btn-outline-success btn-sm">Cargar demo</button>
+        <button id="btnClear" class="btn btn-outline-danger btn-sm">Vaciar lista</button>
+      </div>
+    </div>
+    <div class="table-responsive mt-3">
+      <table class="table align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>ID</th><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th>
+            <th>Teléfono</th><th>Dirección</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="tbodyUsers"></tbody>
+      </table>
+    </div>
+  </section>
 
-  <!-- F4: Escenario 2: correo duplicado -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- Modal ✖ Correo duplicado --></div></div>
+  <!-- F3/F4/F5: Modales -->
+  <!-- Éxito -->
+  <div class="modal fade" id="modalOk" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h6 class="modal-title">Operación exitosa</h6>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="okText">Usuario creado correctamente.</div>
+      <div class="modal-footer"><button class="btn btn-success" data-bs-dismiss="modal">OK</button></div>
+    </div></div>
+  </div>
+  <!-- Error -->
+  <div class="modal fade" id="modalErr" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h6 class="modal-title">No se pudo completar</h6>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="errText">Motivo…</div>
+      <div class="modal-footer"><button class="btn btn-danger" data-bs-dismiss="modal">Entendido</button></div>
+    </div></div>
+  </div>
 
-  <!-- F5: Escenario 3: cambio de rol -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- Modal ⚙ Rol actualizado --></div></div>
+  <!-- Editor (Escenario 3) -->
+  <div class="modal fade" id="modalEdit" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">✏️ Editar usuario</h6>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="eId">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Teléfono</label>
+            <input id="eTel" class="form-control" placeholder="+569 1234 5678">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Rol</label>
+            <select id="eRol" class="form-select">
+              <option value="cliente">cliente</option>
+              <option value="cajero">cajero</option>
+              <option value="admin">admin</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Dirección</label>
+            <input id="eDir" class="form-control" placeholder="Av. Principal 123, Santiago">
+          </div>
+          <div class="col-12 form-check">
+            <input id="eActivo" class="form-check-input" type="checkbox">
+            <label class="form-check-label">Activo</label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btnGuardarEdit" class="btn btn-primary">Guardar cambios</button>
+      </div>
+    </div></div>
+  </div>
 
-  <!-- F6: Clase "Usuario" (nombre, correo, rol, estado, creadoPor, fechaCreacion, modificadoPor?, fechaModificacion?) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Clase Usuario --></div></div>
+</div>
 
-</div></body></html>
+<script>
+/* =========================
+   Persistencia (localStorage)
+========================= */
+const KEY = 'b20_users';
+const load = ()=>{ try { return JSON.parse(localStorage.getItem(KEY)||'[]'); } catch { return []; } };
+const save = (l)=> localStorage.setItem(KEY, JSON.stringify(l));
+const nextId = (l)=> (l.at(-1)?.id || 0) + 1;
+
+/* =========================
+   Utilidades
+========================= */
+const $ = (id)=> document.getElementById(id);
+const modal = (id)=> new bootstrap.Modal($(id));
+const showOk = (txt)=>{ $('okText').innerText = txt; modal('modalOk').show(); };
+const showErr = (txt)=>{ $('errText').innerText = txt; modal('modalErr').show(); };
+
+function render(){
+  const tb = $('tbodyUsers'); tb.innerHTML = '';
+  const list = load();
+  if(!list.length){
+    tb.innerHTML = `<tr><td colspan="8" class="text-center text-muted">Sin usuarios.</td></tr>`;
+    return;
+  }
+  for(const u of list){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${u.id}</td>
+      <td>${u.nombre}</td>
+      <td>${u.correo}</td>
+      <td><span class="chip">${u.rol}</span></td>
+      <td>${u.activo ? 'Activo' : 'Inactivo'}</td>
+      <td>${u.telefono || '-'}</td>
+      <td>${u.direccion || '-'}</td>
+      <td class="text-end">
+        <button class="btn btn-sm btn-outline-primary me-1" data-edit="${u.id}">Editar</button>
+        <button class="btn btn-sm btn-outline-danger" data-del="${u.id}">Eliminar</button>
+      </td>`;
+    tb.appendChild(tr);
+  }
+}
+
+/* =========================
+   “API” simulada para validar correo
+   - Aprobados: dominios demo.com, gmail.com
+   - Rechazados: si contiene "invalid" o dominio desconocido
+========================= */
+function verifyEmailAPI(correo){
+  return new Promise((resolve)=>{
+    setTimeout(()=>{
+      const okDomains = ['demo.com', 'gmail.com'];
+      const [_, dom] = correo.split('@');
+      if(!correo.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)){
+        resolve({ok:false, reason:'Formato inválido'});
+      } else if(correo.includes('invalid')){
+        resolve({ok:false, reason:'Listado como inválido por la API'});
+      } else if(!okDomains.includes(dom)){
+        resolve({ok:false, reason:`Dominio ${dom} no verificado`});
+      } else {
+        resolve({ok:true});
+      }
+    }, 600); // pequeña latencia
+  });
+}
+
+/* =========================
+   Alta de usuario (Esc. 1 y 2)
+========================= */
+$('btnCrear').addEventListener('click', async ()=>{
+  const nombre = ($('uNombre').value||'').trim();
+  const correo = ($('uCorreo').value||'').trim().toLowerCase();
+  const rol    = $('uRol').value;
+  const activo = $('uActivo').checked;
+
+  $('altaMsg').innerHTML = '';
+
+  if(!nombre || !correo){
+    $('altaMsg').innerHTML = `<div class="alert alert-warning">Completa nombre y correo.</div>`;
+    return;
+  }
+  if(!$('uCorreo').checkValidity()){
+    $('altaMsg').innerHTML = `<div class="alert alert-danger">Correo con formato inválido.</div>`;
+    return;
+  }
+
+  // Duplicado
+  const list = load();
+  if(list.some(u => u.correo === correo)){
+    showErr('Ese correo ya está registrado.');
+    return;
+  }
+
+  // Verificación simulada por “API”
+  const api = await verifyEmailAPI(correo);
+  if(!api.ok){
+    // Escenario 2: correo no válido
+    showErr(`Correo no válido: ${api.reason}`);
+    return;
+  }
+
+  // Escenario 1: alta exitosa
+  const nuevo = {
+    id: nextId(list),
+    nombre, correo, rol,
+    activo,
+    telefono: '',
+    direccion: '',
+    creadoPor: 'admin@elmariachi.cl',
+    fechaCreacion: new Date().toISOString()
+  };
+  list.push(nuevo); save(list);
+  render();
+  $('uNombre').value=''; $('uCorreo').value=''; $('uRol').value='cliente'; $('uActivo').checked=true;
+  showOk('Usuario creado correctamente.');
+});
+
+/* =========================
+   Edición (Escenario 3)
+========================= */
+$('tbodyUsers').addEventListener('click', (ev)=>{
+  const idEdit = ev.target.getAttribute('data-edit');
+  const idDel  = ev.target.getAttribute('data-del');
+  if(idEdit){ openEdit(+idEdit); }
+  if(idDel){ delUser(+idDel); }
+});
+
+function openEdit(id){
+  const u = load().find(x=>x.id===id);
+  if(!u) return;
+  $('eId').value = u.id;
+  $('eTel').value = u.telefono || '';
+  $('eDir').value = u.direccion || '';
+  $('eRol').value = u.rol;
+  $('eActivo').checked = !!u.activo;
+  modal('modalEdit').show();
+}
+
+$('btnGuardarEdit').addEventListener('click', ()=>{
+  const id  = +$('eId').value;
+  const tel = $('eTel').value.trim();
+  const dir = $('eDir').value.trim();
+  const rol = $('eRol').value;
+  const act = $('eActivo').checked;
+
+  const list = load();
+  const i = list.findIndex(x=>x.id===id);
+  if(i<0) return;
+
+  list[i].telefono = tel;
+  list[i].direccion = dir;
+  list[i].rol = rol;
+  list[i].activo = act;
+  list[i].modificadoPor = 'admin@elmariachi.cl';
+  list[i].fechaModificacion = new Date().toISOString();
+
+  save(list);
+  render();
+  modal('modalEdit').hide();
+  showOk('Cambios guardados correctamente.');
+});
+
+/* =========================
+   Eliminar (utilidad)
+========================= */
+function delUser(id){
+  if(!confirm('¿Eliminar este usuario?')) return;
+  const list = load().filter(u=>u.id!==id);
+  save(list); render();
+}
+
+/* =========================
+   Demo / limpieza
+========================= */
+$('btnSeed').addEventListener('click', ()=>{
+  const base = load();
+  const start = nextId(base);
+  const demo = [
+    {id:start+0,nombre:'Ana Demo', correo:'ana@demo.com', rol:'cliente', activo:true, telefono:'', direccion:'', creadoPor:'seed', fechaCreacion:new Date().toISOString()},
+    {id:start+1,nombre:'Carlos Caja', correo:'caja@demo.com', rol:'cajero', activo:true, telefono:'+56911112222', direccion:'Local Centro', creadoPor:'seed', fechaCreacion:new Date().toISOString()},
+  ];
+  save(base.concat(demo));
+  render();
+  showOk('Datos demo cargados.');
+});
+
+$('btnClear').addEventListener('click', ()=>{
+  if(confirm('¿Vaciar la lista de usuarios?')){
+    localStorage.removeItem(KEY);
+    render();
+  }
+});
+
+/* init */
+render();
+</script>
+</body>
+</html>

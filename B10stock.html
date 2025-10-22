@@ -1,19 +1,218 @@
-<!DOCTYPE html><html lang="es"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>B10 – Stock/Disponibilidad</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</head><body>
-<div class="container">
-  <!-- F1: Gherkin (sin stock por venta, reposición, bloqueo agregado) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Gherkin --></div></div>
-  <!-- F2: Panel “producto no disponible” -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- cartel no disponible --></div></div>
-  <!-- F3: Panel “reposicionar stock” (admin) -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- +X stock --></div></div>
-  <!-- F4: Modal/alerta (cliente intenta agregar sin stock) -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- error agregar --></div></div>
-  <!-- F5: Clase "Producto" (stock, disponible, mensajeEstado) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Clase Producto --></div></div>
+<style>
+  .badge-state{font-size:.9rem}
+  .card img{height:220px;object-fit:cover}
+</style>
+</head>
+<body class="bg-light">
+<div class="container py-4">
+
+  <!-- F1: Gherkin -->
+  <div class="mb-3">
+    <h5><strong>Escenarios (Gherkin):</strong></h5>
+    <ul class="mb-0">
+      <li><b>Escenario 1 – Cambio a sin stock:</b> Dado un producto con stock 1, cuando se realiza una venta, entonces el stock queda en 0 y el producto aparece como “no disponible”.</li>
+      <li><b>Escenario 2 – Reposición:</b> Dado un producto sin stock, cuando el administrador incrementa el stock a un valor positivo, entonces el producto vuelve a mostrarse como disponible.</li>
+      <li><b>Escenario 3 – Bloqueo agregado sin stock:</b> Dado un producto sin stock, cuando el cliente intenta agregarlo al pedido, entonces el sistema impide la acción y muestra un mensaje claro.</li>
+    </ul>
+  </div>
+
+  <!-- Tarjeta producto -->
+  <div class="card shadow-sm">
+    <div class="row g-0">
+      <div class="col-md-5">
+        <img id="p_img" src="assets/ImagenesMariachi/tacos1.jpg" class="img-fluid rounded-start" alt="producto">
+      </div>
+      <div class="col-md-7">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <h4 id="p_nombre" class="card-title mb-1">—</h4>
+              <span id="p_cat" class="badge bg-secondary text-uppercase">—</span>
+            </div>
+            <div>
+              <span id="p_state" class="badge badge-state bg-success">Disponible</span>
+            </div>
+          </div>
+
+          <p class="mt-3 mb-2 text-muted" id="p_desc">—</p>
+
+          <div class="mb-2">
+            <span class="h5 text-success" id="p_precio">$—</span>
+          </div>
+
+          <div class="alert alert-warning py-2 px-3 d-none" id="alertNoDisp">
+            🚫 <strong>No disponible</strong> por falta de stock.
+          </div>
+
+          <div class="d-flex align-items-center gap-3">
+            <div><strong>Stock:</strong> <span id="p_stock">0</span> u.</div>
+            <button id="btnVender" class="btn btn-outline-danger btn-sm">Vender 1</button>
+            <button id="btnAdd" class="btn btn-success btn-sm">Agregar al pedido</button>
+          </div>
+
+          <hr>
+
+          <!-- F3: Reposición -->
+          <div class="row g-2 align-items-end">
+            <div class="col-auto">
+              <label class="form-label mb-1">Reposición (admin)</label>
+              <input id="inpRepo" type="number" min="1" step="1" class="form-control" placeholder="+ unidades" style="width:130px">
+            </div>
+            <div class="col-auto">
+              <button id="btnRepo" class="btn btn-primary">Aplicar reposición</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- F4: Modal bloqueo agregado -->
+  <div class="modal fade" id="modalBloqueo" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-warning">
+          <h5 class="modal-title">No se puede agregar</h5>
+          <button class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          Este producto está <strong>sin stock</strong>. Intenta más tarde o elige otro platillo.
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Entendido</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- F5: Clase Producto (mock) -->
+  <div class="mt-4">
+    <h6>Clase <code>Producto</code> (mock para B10):</h6>
+<pre class="bg-white p-3 border rounded"><code>Producto {
+  idProducto: Integer
+  nombre: String
+  categoria: String
+  precio: Float
+  stock: Integer
+  disponible: Boolean        // derivado de stock > 0
+  mensajeEstado: String      // "Disponible" | "No disponible"
+  imagen: String
+  descripcion: String
+}</code></pre>
+  </div>
 </div>
-</body></html>
+
+<script>
+  // ====== Semilla / estado ======
+  const KEY = "b10_producto_mock";
+  (function seed(){
+    if (localStorage.getItem(KEY)) return;
+    const prod = {
+      idProducto: 1,
+      nombre: "Tacos al Pastor",
+      categoria: "tacos",
+      precio: 4990,
+      stock: 1,                // para demostrar esc.1 (venta → 0)
+      imagen: "assets/ImagenesMariachi/tacos1.jpg",
+      descripcion: "Tortillas suaves con carne marinada, piña y cebolla."
+    };
+    localStorage.setItem(KEY, JSON.stringify(prod));
+  })();
+
+  function load(){ return JSON.parse(localStorage.getItem(KEY)); }
+  function save(p){ localStorage.setItem(KEY, JSON.stringify(p)); }
+
+  // ====== UI refs ======
+  const el = {
+    img: document.getElementById("p_img"),
+    nombre: document.getElementById("p_nombre"),
+    cat: document.getElementById("p_cat"),
+    desc: document.getElementById("p_desc"),
+    precio: document.getElementById("p_precio"),
+    stock: document.getElementById("p_stock"),
+    state: document.getElementById("p_state"),
+    alertNoDisp: document.getElementById("alertNoDisp"),
+    btnVender: document.getElementById("btnVender"),
+    btnAdd: document.getElementById("btnAdd"),
+    inpRepo: document.getElementById("inpRepo"),
+    btnRepo: document.getElementById("btnRepo")
+  };
+
+  function setDisponibilidadUI(p){
+    const disponible = p.stock > 0;
+    el.state.textContent = disponible ? "Disponible" : "No disponible";
+    el.state.classList.toggle("bg-success", disponible);
+    el.state.classList.toggle("bg-danger", !disponible);
+    el.alertNoDisp.classList.toggle("d-none", disponible);
+    el.btnAdd.disabled = !disponible;
+  }
+
+  function render(){
+    const p = load();
+    el.img.src = p.imagen || "https://via.placeholder.com/600x400?text=Producto";
+    el.nombre.textContent = p.nombre;
+    el.cat.textContent = p.categoria;
+    el.desc.textContent = p.descripcion || "";
+    el.precio.textContent = `$${p.precio}`;
+    el.stock.textContent = p.stock;
+    setDisponibilidadUI(p);
+  }
+
+  // ====== Escenario 1: venta → sin stock
+  el.btnVender.addEventListener("click", () => {
+    const p = load();
+    if (p.stock > 0) p.stock -= 1;
+    save(p);
+    render();
+  });
+
+  // ====== Escenario 2: reposición (admin)
+  el.btnRepo.addEventListener("click", () => {
+    const inc = parseInt(el.inpRepo.value || "0", 10);
+    if (inc <= 0) {
+      const toast = new bootstrap.Toast(Object.assign(document.createElement("div"), {
+        className: "toast align-items-center text-bg-warning position-fixed bottom-0 end-0 m-3",
+        role: "alert", innerHTML:
+          `<div class="d-flex"><div class="toast-body">Ingresa un número mayor a 0 para reponer.</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>`
+      }));
+      document.body.appendChild(toast._element); toast.show();
+      return;
+    }
+    const p = load();
+    p.stock += inc;
+    save(p);
+    el.inpRepo.value = "";
+    render();
+  });
+
+  // ====== Escenario 3: bloqueo de agregado sin stock
+  el.btnAdd.addEventListener("click", () => {
+    const p = load();
+    if (p.stock <= 0) {
+      new bootstrap.Modal(document.getElementById("modalBloqueo")).show();
+      return;
+    }
+    // Simulación de agregado correcto (si hubiera carrito):
+    const ok = document.createElement("div");
+    ok.className = "alert alert-success mt-3";
+    ok.textContent = "✔ Agregado al pedido (simulado).";
+    document.querySelector(".card .card-body").appendChild(ok);
+    setTimeout(() => ok.remove(), 2500);
+  });
+
+  // Init
+  render();
+</script>
+</body>
+</html>
+

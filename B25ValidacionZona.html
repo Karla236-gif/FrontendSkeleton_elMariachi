@@ -1,64 +1,292 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>B25 – Validación zona y tiempos</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <style>
+    body{background:#f7f7fb}
+    .chip{padding:.2rem .6rem;border-radius:999px;border:1px solid #e5e7eb;background:#fff;font-size:.8rem}
+    .muted{color:#6b7280}
+  </style>
 </head>
 <body>
-<div class="container">
-
-  <!-- F1: Gherkin (zona válida, fuera de zona, tiempos) -->
-  <div class="row">
-    <div class="col-12 d-flex justify-content-start">
-      <!-- Escenarios de confirmación -->
-    </div>
+<div class="container py-4">
+  <div class="d-flex align-items-center gap-2 mb-3">
+    <h3 class="m-0">📍 B25 – Validación de zona y tiempos</h3>
+    <span class="chip">radio = 3 km</span>
   </div>
 
-  <!-- F2: Formulario dirección + distancia -->
-  <div class="row">
-    <div class="col-12 d-flex justify-content-start">
-      <!-- campo dirección + botón validar -->
+  <!-- F2: Form dirección + distancia -->
+  <section class="card p-3 mb-3">
+    <h5 class="mb-3">Dirección de entrega</h5>
+    <div class="row g-3 align-items-end">
+      <div class="col-md-5">
+        <label class="form-label">Dirección</label>
+        <input id="txtDireccion" class="form-control" placeholder="Ej.: Av. Libertad 1234, Depto 12" />
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">
+          Distancia desde el local (km)
+          <span class="muted d-block" style="font-weight:400">(simulada)</span>
+        </label>
+        <div class="input-group">
+          <input id="numDistancia" type="number" min="0" step="0.1" value="2.5" class="form-control">
+          <span class="input-group-text">km</span>
+        </div>
+        <input id="rngDistancia" type="range" min="0" max="6" step="0.1" class="form-range mt-2" value="2.5">
+      </div>
+      <div class="col-md-3 d-grid">
+        <button id="btnValidar" class="btn btn-primary">Validar zona</button>
+      </div>
     </div>
-  </div>
+    <div id="zonaMsg" class="mt-3"></div>
+  </section>
 
-  <!-- F3: Escenario 1: dentro de zona -->
-  <div class="row">
-    <div class="col-12 d-flex justify-content-center">
-      <!-- Mensaje ✔ Entrega disponible -->
+  <!-- F5: Registro de tiempos -->
+  <section class="card p-3 mb-3">
+    <h5 class="mb-3">Tiempos de entrega</h5>
+    <div class="row g-3">
+      <div class="col-6 col-md-3">
+        <label class="form-label">Estimado (min)</label>
+        <input id="tEst" type="number" min="1" step="1" class="form-control" placeholder="Ej.: 25" />
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label">Real (min)</label>
+        <input id="tReal" type="number" min="1" step="1" class="form-control" placeholder="Ej.: 27" />
+      </div>
+      <div class="col-md-3 d-grid">
+        <label class="form-label invisible">.</label>
+        <button id="btnGuardarTiempo" class="btn btn-success">Guardar tiempos</button>
+      </div>
+      <div class="col-md-3 d-grid">
+        <label class="form-label invisible">.</label>
+        <button id="btnDemoTiempos" class="btn btn-outline-secondary">Cargar demo tiempos</button>
+      </div>
     </div>
-  </div>
 
-  <!-- F4: Escenario 2: fuera de zona -->
-  <div class="row">
-    <div class="col-12 d-flex justify-content-center">
-      <!-- Alerta ✖ Fuera del radio de 3 km -->
-    </div>
-  </div>
+    <div id="tiemposMsg" class="mt-3"></div>
 
-  <!-- F5: Escenario 3: registro de tiempos -->
-  <div class="row">
-    <div class="col-12 d-flex justify-content-start">
-      <!-- campos estimado / real / diferencia -->
+    <div class="mt-3">
+      <h6 class="mb-2">Registros guardados</h6>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th>Fecha/Hora</th>
+              <th>Dirección</th>
+              <th>Distancia</th>
+              <th>Estimado</th>
+              <th>Real</th>
+              <th>Diferencia</th>
+            </tr>
+          </thead>
+          <tbody id="tbRegistros"></tbody>
+        </table>
+      </div>
     </div>
-  </div>
+  </section>
 
   <!-- F6: Métricas -->
-  <div class="row">
-    <div class="col-12 d-flex justify-content-start">
-      <!-- promedio diario/semana -->
+  <section class="card p-3 mb-3">
+    <h5 class="mb-3">Métricas</h5>
+    <div class="row g-3">
+      <div class="col-md-3">
+        <div class="p-3 border rounded bg-white">
+          <div class="muted">Promedio (hoy)</div>
+          <div id="avgHoy" class="fs-4 fw-semibold">–</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="p-3 border rounded bg-white">
+          <div class="muted">Promedio (últ. 7 días)</div>
+          <div id="avgSemana" class="fs-4 fw-semibold">–</div>
+        </div>
+      </div>
+      <div class="col-md-6 d-flex gap-2 justify-content-end">
+        <button id="btnSeed" class="btn btn-outline-primary">Cargar demo</button>
+        <button id="btnClear" class="btn btn-outline-danger">Vaciar datos</button>
+      </div>
     </div>
-  </div>
+  </section>
 
-  <!-- F7: Clase ValidacionEntrega -->
-  <div class="row">
-    <div class="col-12 d-flex justify-content-start">
-      <!-- idPedido, distancia, dentroZona, tiempoEstimado, tiempoReal, diferencia -->
-    </div>
-  </div>
-
+  <!-- Ayuda -->
+  <p class="muted small">
+    * Este módulo simula distancia con un input numérico / slider. En producción, reemplaza por geocodificación
+    (p. ej. Google Maps) y calcula la distancia al local con Haversine.
+  </p>
 </div>
+
+<script>
+/* ==========================
+   Helpers + storage
+========================== */
+const RADIO_KM = 3;                         // radio aceptado
+const KEY = 'b25_validacion_registros';     // localStorage
+
+const load = () => {
+  try { return JSON.parse(localStorage.getItem(KEY) || '[]'); }
+  catch { return []; }
+};
+const save = (arr) => localStorage.setItem(KEY, JSON.stringify(arr));
+const nextId = (arr) => (arr.at(-1)?.id || 0) + 1;
+
+const $ = (id) => document.getElementById(id);
+const fmt = (n) => Number(n).toLocaleString('es-CL');
+
+/* ==========================
+   Zona: UI + validación
+========================== */
+const inputDist = $('numDistancia');
+const rangeDist = $('rngDistancia');
+
+rangeDist.addEventListener('input', () => inputDist.value = rangeDist.value);
+inputDist.addEventListener('input', () => rangeDist.value = inputDist.value);
+
+$('btnValidar').addEventListener('click', () => {
+  const dir = $('txtDireccion').value.trim();
+  const km = parseFloat(inputDist.value);
+  const out = $('zonaMsg');
+
+  if (!dir || isNaN(km)) {
+    out.innerHTML = `<div class="alert alert-warning">Completa dirección y distancia.</div>`;
+    return;
+  }
+
+  if (km <= RADIO_KM) {
+    out.innerHTML = `
+      <div class="alert alert-success">
+        ✅ Entrega disponible. <strong>${km.toFixed(1)} km</strong> está dentro del radio de ${RADIO_KM} km.
+      </div>`;
+  } else {
+    out.innerHTML = `
+      <div class="alert alert-danger">
+        ❌ Fuera del radio permitido: <strong>${km.toFixed(1)} km</strong> &gt; ${RADIO_KM} km.
+      </div>`;
+  }
+});
+
+/* ==========================
+   Guardar tiempos
+========================== */
+function renderTabla() {
+  const tbody = $('tbRegistros');
+  const arr = load();
+  if (!arr.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">Sin registros.</td></tr>`;
+    $('avgHoy').textContent = '–';
+    $('avgSemana').textContent = '–';
+    return;
+  }
+
+  tbody.innerHTML = '';
+  for (const r of arr.toReversed()) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${r.id}</td>
+      <td>${new Date(r.fechaHora).toLocaleString('es-CL')}</td>
+      <td>${r.direccion || '–'}</td>
+      <td>${r.distancia?.toFixed?.(1) ?? '–'} km</td>
+      <td>${fmt(r.estimado)} min</td>
+      <td>${fmt(r.real)} min</td>
+      <td>${fmt(r.diferencia)} min</td>`;
+    tbody.appendChild(tr);
+  }
+
+  // métricas
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const difHoy = arr.filter(r => (new Date(r.fechaHora).setHours(0,0,0,0) === +hoy))
+                    .map(r => r.diferencia);
+  const dif7d  = arr.filter(r => (Date.now() - new Date(r.fechaHora).getTime()) <= 7*86400_000)
+                    .map(r => r.diferencia);
+
+  const avg = l => l.length ? (l.reduce((a,b)=>a+b,0)/l.length) : null;
+  const a1 = avg(difHoy), a2 = avg(dif7d);
+  $('avgHoy').textContent = a1 == null ? '–' : `${a1.toFixed(1)} min`;
+  $('avgSemana').textContent = a2 == null ? '–' : `${a2.toFixed(1)} min`;
+}
+
+$('btnGuardarTiempo').addEventListener('click', () => {
+  const est = parseInt($('tEst').value, 10);
+  const real = parseInt($('tReal').value, 10);
+  const dir = $('txtDireccion').value.trim();
+  const km  = parseFloat(inputDist.value);
+  const msg = $('tiemposMsg');
+
+  if (!Number.isFinite(est) || !Number.isFinite(real) || est <= 0 || real <= 0) {
+    msg.innerHTML = `<div class="alert alert-warning">Completa tiempos estimado y real (minutos &gt; 0).</div>`;
+    return;
+  }
+
+  const diff = real - est;
+  const list = load();
+  const rec = {
+    id: nextId(list),
+    fechaHora: new Date().toISOString(),
+    direccion: dir || null,
+    distancia: Number.isFinite(km) ? km : null,
+    estimado: est,
+    real,
+    diferencia: diff
+  };
+  list.push(rec);
+  save(list);
+  renderTabla();
+
+  msg.innerHTML = `
+    <div class="alert alert-success">
+      Tiempos guardados. Diferencia: <strong>${diff} min</strong>.
+    </div>`;
+  setTimeout(() => msg.innerHTML = '', 2200);
+});
+
+/* ==========================
+   Demo + mantenimiento
+========================== */
+$('btnDemoTiempos').addEventListener('click', () => {
+  $('tEst').value = 25;
+  $('tReal').value = 27;
+});
+
+$('btnSeed').addEventListener('click', () => {
+  const who = 'seed';
+  const base = load();
+  const now = Date.now();
+  const rows = [
+    {dir:'Ana, Av. Centro 101',  km:2.4, est:25, real:27},
+    {dir:'Pedro, Los Olmos 55',  km:3.0, est:22, real:21},
+    {dir:'Karla, Norte 880',     km:3.6, est:28, real:31},  // fuera de zona
+    {dir:'Rosa, Pasaje 12',      km:1.9, est:24, real:26},
+    {dir:'Luis, Camino Sur 5',   km:2.9, est:20, real:19},
+  ].map((x,i)=>({
+    id: nextId(base) + i,
+    fechaHora: new Date(now - i*3600_000).toISOString(),
+    direccion: x.dir,
+    distancia: x.km,
+    estimado: x.est,
+    real: x.real,
+    diferencia: x.real - x.est
+  }));
+  save(base.concat(rows));
+  renderTabla();
+  $('zonaMsg').innerHTML = `<div class="alert alert-info">Datos de demo cargados.</div>`;
+});
+
+$('btnClear').addEventListener('click', () => {
+  if (!confirm('¿Vaciar todos los registros?')) return;
+  localStorage.removeItem(KEY);
+  renderTabla();
+  $('zonaMsg').innerHTML = '';
+  $('tiemposMsg').innerHTML = '';
+});
+
+/* ==========================
+   Init
+========================== */
+renderTabla();
+</script>
 </body>
 </html>

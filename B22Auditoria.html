@@ -1,29 +1,265 @@
-<!DOCTYPE html><html lang="es"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>B22 – Auditoría de usuarios</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</head><body><div class="container">
+<style>
+  body { background:#f7f7fb }
+  .chip { padding:.15rem .55rem; border-radius:999px; font-size:.78rem; border:1px solid #e5e7eb; background:#fff }
+  .toolbar .form-control, .toolbar .form-select { min-width: 180px }
+</style>
+</head>
+<body>
+<div class="container py-4">
 
-  <!-- F1: Gherkin (registro alta, consulta filtrada, inmutabilidad) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Gherkin --></div></div>
+  <h3 class="mb-3">🧾 Auditoría de usuarios</h3>
 
-  <!-- F2: Tabla de auditoría (usuario, operación, fecha, resultado) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- tabla --></div></div>
+  <!-- Filtros -->
+  <div class="toolbar d-flex flex-wrap gap-2 align-items-end mb-3">
+    <div>
+      <label class="form-label">Desde</label>
+      <input type="date" id="fDesde" class="form-control">
+    </div>
+    <div>
+      <label class="form-label">Hasta</label>
+      <input type="date" id="fHasta" class="form-control">
+    </div>
+    <div>
+      <label class="form-label">Tipo</label>
+      <select id="fTipo" class="form-select">
+        <option value="">(todos)</option>
+        <option value="ALTA">ALTA</option>
+        <option value="DESACTIVAR">DESACTIVAR</option>
+        <option value="REACTIVAR">REACTIVAR</option>
+        <option value="CAMBIO_ROL">CAMBIO_ROL</option>
+        <option value="LOGIN">LOGIN</option>
+      </select>
+    </div>
+    <div>
+      <label class="form-label">Responsable</label>
+      <input id="fResp" class="form-control" placeholder="admin@elmariachi.cl">
+    </div>
+    <button id="btnFiltrar" class="btn btn-primary">Filtrar</button>
+    <button id="btnReset" class="btn btn-outline-secondary">Quitar filtros</button>
+  </div>
 
-  <!-- F3: Filtros por fecha, tipo y responsable -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- filtros --></div></div>
+  <!-- Tabla -->
+  <div class="table-responsive">
+    <table class="table table-striped align-middle" id="tabla">
+      <thead class="table-light">
+        <tr>
+          <th>ID</th>
+          <th>Fecha/Hora</th>
+          <th>Responsable</th>
+          <th>Operación</th>
+          <th>Entidad</th>
+          <th>Referencial</th>
+          <th>Resultado</th>
+          <th class="text-center">Acciones</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
-  <!-- F4: Escenario 1: registro alta -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- registro creado ✔ --></div></div>
+  <!-- Controles demo / acciones -->
+  <div class="d-flex flex-wrap gap-2 mt-3">
+    <input id="who" class="form-control w-auto" value="admin@elmariachi.cl" />
+    <button id="btnAltaDemo" class="btn btn-success">Crear alta demo</button>
+    <button id="btnSeed" class="btn btn-outline-success">Cargar demo</button>
+    <button id="btnClear" class="btn btn-outline-danger">Vaciar auditoría</button>
+  </div>
 
-  <!-- F5: Escenario 2: consulta filtrada -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- vista filtrada --></div></div>
+  <hr class="my-4">
 
-  <!-- F6: Escenario 3: intento de edición (rechazado) -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- alerta inmutabilidad --></div></div>
+  <!-- Nota de inmutabilidad -->
+  <div class="alert alert-info">
+    <strong>Inmutabilidad:</strong> los registros de auditoría no se pueden editar ni eliminar.  
+    Cualquier intento será rechazado y se mostrará un aviso.
+  </div>
 
-  <!-- F7: Clase "BitacoraUsuario" (idRegistro, usuarioResponsable, operacion, entidad, fechaHora, resultado, inmutable=true) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Clase BitacoraUsuario --></div></div>
+</div>
 
-</div></body></html>
+<script>
+/* =====================================================
+   MODELO / STORAGE
+   - Clase lógica (estructura) BitacoraUsuario:
+     {
+       idRegistro: Number,
+       usuarioResponsable: String,
+       operacion: String,        // ALTA | DESACTIVAR | REACTIVAR | CAMBIO_ROL | LOGIN ...
+       entidad: String,          // "Usuario", "Cuenta", etc.
+       referencial: String,      // ej. correo del usuario afectado
+       fechaHora: ISOString,
+       resultado: String,        // OK | ERROR
+       inmutable: true
+     }
+===================================================== */
+const KEY = 'b22_auditoria';
+const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { return []; } };
+const save = (l) => localStorage.setItem(KEY, JSON.stringify(l));
+const nextId = (l) => (l.at(-1)?.idRegistro || 0) + 1;
+
+/* =====================================================
+   RENDER TABLA
+===================================================== */
+function renderTabla(lista){
+  const tbody = document.querySelector('#tabla tbody');
+  tbody.innerHTML = '';
+  if (!lista.length){
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">Sin resultados.</td></tr>`;
+    return;
+  }
+  for (const r of lista){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${r.idRegistro}</td>
+      <td>${new Date(r.fechaHora).toLocaleString('es-CL')}</td>
+      <td>${r.usuarioResponsable}</td>
+      <td><span class="chip">${r.operacion}</span></td>
+      <td>${r.entidad}</td>
+      <td>${r.referencial ?? '-'}</td>
+      <td>${r.resultado}</td>
+      <td class="text-center">
+        <button class="btn btn-sm btn-outline-secondary me-1" data-act="edit" data-id="${r.idRegistro}">Editar</button>
+        <button class="btn btn-sm btn-outline-danger" data-act="del" data-id="${r.idRegistro}">Eliminar</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  // Inmutabilidad: bloquear edición/eliminación
+  tbody.querySelectorAll('button[data-act]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      alert('Este registro es inmutable: no se puede editar ni eliminar.');
+    });
+  });
+}
+
+/* =====================================================
+   FILTRO
+===================================================== */
+function filtrar(){
+  const d0 = document.getElementById('fDesde').value ? new Date(document.getElementById('fDesde').value) : new Date('2000-01-01');
+  const d1 = document.getElementById('fHasta').value ? new Date(document.getElementById('fHasta').value) : new Date('2100-01-01');
+  d1.setHours(23,59,59,999);
+  const tipo = document.getElementById('fTipo').value.trim();
+  const resp = (document.getElementById('fResp').value || '').trim().toLowerCase();
+
+  const out = load().filter(r=>{
+    const f = new Date(r.fechaHora);
+    const okDate = (f>=d0 && f<=d1);
+    const okTipo = (!tipo || r.operacion===tipo);
+    const okResp = (!resp || r.usuarioResponsable.toLowerCase().includes(resp));
+    return okDate && okTipo && okResp;
+  });
+
+  renderTabla(out);
+}
+document.getElementById('btnFiltrar').addEventListener('click', filtrar);
+document.getElementById('btnReset').addEventListener('click', ()=>{
+  setFullRange();
+  document.getElementById('fTipo').value = '';
+  document.getElementById('fResp').value = '';
+  filtrar();
+});
+
+/* =====================================================
+   HELPERS
+===================================================== */
+function setFullRange(){
+  const hoy = new Date();
+  const desde = new Date(hoy.getFullYear(), 0, 1);
+  const hasta = new Date(hoy.getFullYear(), hoy.getMonth()+1, 0);
+  document.getElementById('fDesde').value = desde.toISOString().slice(0,10);
+  document.getElementById('fHasta').value = hasta.toISOString().slice(0,10);
+}
+
+/* =====================================================
+   ACCIONES DE DEMO
+===================================================== */
+function registrarEvento({responsable, operacion, entidad, referencial, resultado='OK'}){
+  const lista = load();
+  const item = {
+    idRegistro: nextId(lista),
+    usuarioResponsable: responsable,
+    operacion,
+    entidad,
+    referencial,
+    fechaHora: new Date().toISOString(),
+    resultado,
+    inmutable: true
+  };
+  lista.push(item);
+  save(lista);
+  return item;
+}
+
+// Escenario 1: registro de alta
+document.getElementById('btnAltaDemo').addEventListener('click', ()=>{
+  const admin = document.getElementById('who').value || 'admin@elmariachi.cl';
+  // simulamos que se creó el usuario "ana@demo.com"
+  registrarEvento({
+    responsable: admin,
+    operacion: 'ALTA',
+    entidad: 'Usuario',
+    referencial: 'ana@demo.com',
+    resultado: 'OK'
+  });
+  // mostrar sólo las ALTAS del rango (refrescar filtros)
+  document.getElementById('fTipo').value = 'ALTA';
+  filtrar();
+  alert('Registro de ALTA creado ✔');
+});
+
+// Semilla con varios tipos (para Escenario 2)
+document.getElementById('btnSeed').addEventListener('click', ()=>{
+  const who = document.getElementById('who').value || 'admin@elmariachi.cl';
+  const now = Date.now();
+  const seed = [
+    {op:'LOGIN',       ent:'Usuario', ref: who},
+    {op:'ALTA',        ent:'Usuario', ref:'ana@demo.com'},
+    {op:'DESACTIVAR',  ent:'Usuario', ref:'pedro@demo.com'},
+    {op:'REACTIVAR',   ent:'Usuario', ref:'pedro@demo.com'},
+    {op:'CAMBIO_ROL',  ent:'Usuario', ref:'karla@demo.com'}
+  ].map((x,i)=>({
+    idRegistro: 0, // se reasigna
+    usuarioResponsable: who,
+    operacion: x.op,
+    entidad: x.ent,
+    referencial: x.ref,
+    fechaHora: new Date(now - i*3600_000).toISOString(),
+    resultado: 'OK',
+    inmutable: true
+  }));
+
+  const list = load();
+  let last = nextId(list);
+  seed.forEach(s=>{ s.idRegistro = last++; list.push(s); });
+  save(list);
+  setFullRange();
+  filtrar();
+  alert('Datos de demo cargados.');
+});
+
+// Limpiar todo
+document.getElementById('btnClear').addEventListener('click', ()=>{
+  if(confirm('¿Vaciar todos los registros de auditoría?')){
+    localStorage.removeItem(KEY);
+    filtrar();
+  }
+});
+
+/* =====================================================
+   INIT
+===================================================== */
+window.addEventListener('load', ()=>{
+  setFullRange();
+  filtrar();
+});
+</script>
+</body>
+</html>

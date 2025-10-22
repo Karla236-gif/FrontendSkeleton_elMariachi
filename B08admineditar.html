@@ -1,21 +1,256 @@
-<!DOCTYPE html><html lang="es"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>B08 – Editar producto</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</head><body>
-<div class="container">
-  <!-- F1: Gherkin (edición ok, stock inválido, registro auditoría) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Gherkin --></div></div>
-  <!-- F2: Form edición (precio, stock, descripción) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- form edición --></div></div>
-  <!-- F3: Éxito actualización -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- ✔ OK --></div></div>
-  <!-- F4: Error stock negativo -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- ✖ OK --></div></div>
-  <!-- F5: Panel de auditoría (usuario + timestamp) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- auditoría --></div></div>
-  <!-- F6: Clase "Producto" (campos + ultimaModificacion, modificadoPor) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Clase Producto --></div></div>
+<style>
+  .label {min-width: 130px; display:inline-block;}
+</style>
+</head>
+<body class="bg-light">
+<div class="container py-4">
+
+  <!-- F1: Gherkin -->
+  <div class="mb-3">
+    <h5><strong>Escenarios (Gherkin):</strong></h5>
+    <ul class="mb-0">
+      <li><b>Escenario 1 – Edición exitosa:</b> Dado un producto existente, cuando el administrador cambia su precio a un valor positivo, entonces el sistema guarda el cambio y el catálogo muestra el nuevo precio.</li>
+      <li><b>Escenario 2 – Stock inválido:</b> Dado un producto existente, cuando el administrador ingresa un stock negativo, entonces el sistema rechaza la edición y muestra un mensaje de error.</li>
+      <li><b>Escenario 3 – Registro de auditoría:</b> Dado que el administrador modifica la descripción, cuando guarda los cambios, entonces el sistema registra usuario y timestamp de la modificación.</li>
+    </ul>
+  </div>
+
+  <!-- F2: Form edición -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <h4 class="mb-3">✏️ Editar producto</h4>
+
+      <form id="formEdit" novalidate>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div><span class="label fw-semibold">ID:</span> <span id="f_id">—</span></div>
+            <div><span class="label fw-semibold">Nombre:</span> <span id="f_nombre">—</span></div>
+            <div><span class="label fw-semibold">Categoría:</span> <span id="f_categoria" class="badge bg-secondary">—</span></div>
+          </div>
+          <div class="col-md-6">
+            <img id="f_imagen" src="https://via.placeholder.com/400x300?text=Producto" class="img-fluid rounded border" alt="img">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Precio (CLP)</label>
+            <input type="number" id="precio" class="form-control" min="0" step="1" required>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Stock *</label>
+            <input type="number" id="stock" class="form-control" min="0" step="1" required>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Precio promocional</label>
+            <input type="number" id="precioPromo" class="form-control" min="0" step="1" placeholder="Opcional">
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Descripción</label>
+            <textarea id="descripcion" class="form-control" rows="3" placeholder="Descripción del producto"></textarea>
+          </div>
+
+          <div class="col-md-4 d-flex align-items-center gap-2">
+            <input class="form-check-input" type="checkbox" id="promocionActiva">
+            <label class="form-check-label" for="promocionActiva">Promoción activa</label>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Etiqueta descuento</label>
+            <input type="text" id="etiqueta" class="form-control" placeholder="-20%">
+          </div>
+
+          <div class="col-md-4 d-flex align-items-center gap-2">
+            <input class="form-check-input" type="checkbox" id="activo">
+            <label class="form-check-label" for="activo">Activo</label>
+          </div>
+
+          <div class="col-12">
+            <button class="btn btn-primary" type="submit">Guardar cambios</button>
+            <a class="btn btn-outline-secondary" href="javascript:history.back()">Volver</a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- F3/F4: Mensajes -->
+  <div id="msgOk"  class="alert alert-success d-none">✔ Producto actualizado correctamente.</div>
+  <div id="msgErr" class="alert alert-danger d-none">✖ Revisa los datos. El stock debe ser ≥ 0.</div>
+
+  <!-- F5: Panel de auditoría -->
+  <div class="card mt-3">
+    <div class="card-body">
+      <h5 class="mb-3">🧾 Auditoría de modificaciones</h5>
+      <ul id="auditList" class="list-group list-group-flush"></ul>
+    </div>
+  </div>
+
+  <!-- F6: Clase Producto -->
+  <div class="mt-4">
+    <h6>Clase <code>Producto</code> (mock):</h6>
+<pre class="bg-white p-3 border rounded"><code>Producto {
+  idProducto: Integer
+  nombre: String
+  categoria: String
+  precio: Float
+  precioPromocional: Float
+  stock: Integer
+  descripcion: String
+  imagen: String
+  promocionActiva: Boolean
+  etiquetaDescuento: String
+  activo: Boolean
+  ultimaModificacion: DateTime
+  modificadoPor: String
+}</code></pre>
+  </div>
 </div>
-</body></html>
+
+<script>
+  // === Variables globales ===
+  const ADMIN_USER = "admin@elmariachi.cl";
+  const KEY = "productos_mock";
+
+  // === Datos de ejemplo si no existen ===
+  (function seed() {
+    if (localStorage.getItem(KEY)) return;
+    const seedData = [
+      {idProducto:1,nombre:'Tacos al Pastor',categoria:'tacos',precio:4990,precioPromocional:0,stock:10,descripcion:'Tortillas con carne marinada',imagen:'assets/ImagenesMariachi/tacos1.jpg',promocionActiva:false,etiquetaDescuento:'',activo:true,ultimaModificacion:null,modificadoPor:''},
+      {idProducto:2,nombre:'Burrito Especial',categoria:'burritos',precio:6490,precioPromocional:5190,stock:12,descripcion:'Carne, frijoles y guacamole',imagen:'assets/ImagenesMariachi/burrito1.jpg',promocionActiva:true,etiquetaDescuento:'-20%',activo:true,ultimaModificacion:null,modificadoPor:''}
+    ];
+    localStorage.setItem(KEY, JSON.stringify(seedData));
+  })();
+
+  // === Funciones de auditoría ===
+  function auditKey(id){ return `audit_${id}`; }
+  function pushAudit(id, action, user){
+    const arr = JSON.parse(localStorage.getItem(auditKey(id)) || "[]");
+    arr.unshift({ action, user, at: new Date().toISOString() });
+    localStorage.setItem(auditKey(id), JSON.stringify(arr));
+  }
+  function renderAudit(id){
+    const list = document.getElementById("auditList");
+    const arr = JSON.parse(localStorage.getItem(auditKey(id)) || "[]");
+    list.innerHTML = arr.length ? arr.map(a => `
+      <li class="list-group-item d-flex justify-content-between">
+        <span>${a.action}</span>
+        <small class="text-muted">${a.user} – ${new Date(a.at).toLocaleString()}</small>
+      </li>
+    `).join("") : `<li class="list-group-item text-muted">Sin registros aún.</li>`;
+  }
+
+  // === Obtener producto ===
+  function getProductoById(id){
+    const lista = JSON.parse(localStorage.getItem(KEY) || "[]");
+    return { prod: lista.find(p => p.idProducto === id), lista };
+  }
+  function saveProducto(prod, lista){
+    const idx = lista.findIndex(p => p.idProducto === prod.idProducto);
+    if (idx >= 0) lista[idx] = prod;
+    localStorage.setItem(KEY, JSON.stringify(lista));
+  }
+
+  // === Carga inicial (usa ?id=) ===
+  const sp = new URLSearchParams(location.search);
+  const id = parseInt(sp.get("id") || "0", 10);
+
+  const msgOk  = document.getElementById("msgOk");
+  const msgErr = document.getElementById("msgErr");
+  const form = document.getElementById("formEdit");
+  const precio = document.getElementById("precio");
+  const precioPromo = document.getElementById("precioPromo");
+  const stock = document.getElementById("stock");
+  const descripcion = document.getElementById("descripcion");
+  const promocionActiva = document.getElementById("promocionActiva");
+  const etiqueta = document.getElementById("etiqueta");
+  const activo = document.getElementById("activo");
+
+  const meta = {
+    idEl: document.getElementById("f_id"),
+    nombreEl: document.getElementById("f_nombre"),
+    categoriaEl: document.getElementById("f_categoria"),
+    imgEl: document.getElementById("f_imagen")
+  };
+
+  (function load(){
+    const { prod } = getProductoById(id);
+    if (!prod) {
+      msgErr.classList.remove("d-none");
+      msgErr.textContent = "✖ Producto no encontrado (revisa ?id=).";
+      form.classList.add("d-none");
+      return;
+    }
+    meta.idEl.textContent = prod.idProducto;
+    meta.nombreEl.textContent = prod.nombre;
+    meta.categoriaEl.textContent = prod.categoria;
+    meta.imgEl.src = prod.imagen || "https://via.placeholder.com/400x300?text=Producto";
+
+    precio.value = prod.precio ?? 0;
+    precioPromo.value = prod.precioPromocional ?? 0;
+    stock.value = prod.stock ?? 0;
+    descripcion.value = prod.descripcion ?? "";
+    promocionActiva.checked = !!prod.promocionActiva;
+    etiqueta.value = prod.etiquetaDescuento ?? "";
+    activo.checked = prod.activo !== false;
+
+    renderAudit(id);
+  })();
+
+  // === Guardar cambios (maneja los 3 escenarios) ===
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+
+    const price = parseFloat(precio.value || 0);
+    const st = parseInt(stock.value || 0, 10);
+
+    // 🔴 ESCENARIO 2 – STOCK INVÁLIDO
+    if (st < 0) {
+      msgOk.classList.add("d-none");
+      msgErr.classList.remove("d-none");
+      msgErr.textContent = "✖ Stock inválido. Debe ser un número igual o mayor a 0.";
+      return;
+    }
+
+    // ⚠️ Validación adicional: precio negativo
+    if (price < 0) {
+      msgOk.classList.add("d-none");
+      msgErr.classList.remove("d-none");
+      msgErr.textContent = "✖ Precio inválido. No puede ser negativo.";
+      return;
+    }
+
+    // 🟢 ESCENARIO 1 + 3 – Edición válida y auditoría
+    const { prod, lista } = getProductoById(id);
+    if (!prod) return;
+
+    prod.precio = price;
+    prod.precioPromocional = parseFloat(precioPromo.value || 0);
+    prod.stock = st;
+    prod.descripcion = descripcion.value.trim();
+    prod.promocionActiva = promocionActiva.checked && prod.precioPromocional > 0;
+    prod.etiquetaDescuento = etiqueta.value.trim();
+    prod.activo = activo.checked;
+    prod.ultimaModificacion = new Date().toISOString();
+    prod.modificadoPor = ADMIN_USER;
+
+    saveProducto(prod, lista);
+    pushAudit(prod.idProducto, "Actualización de producto", ADMIN_USER);
+    renderAudit(prod.idProducto);
+
+    msgErr.classList.add("d-none");
+    msgOk.classList.remove("d-none");
+    msgOk.textContent = "✔ Producto actualizado correctamente.";
+  });
+</script>
+</body>
+</html>

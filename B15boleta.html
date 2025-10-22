@@ -1,26 +1,326 @@
-<!DOCTYPE html><html lang="es"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>B15 – Boleta y bitácora</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</head><body><div class="container">
+<style>
+  .table td,.table th{vertical-align:middle}
+  .chip{padding:.2rem .5rem;border-radius:999px;font-size:.78rem}
+  .chip-ok{background:#e6f4ea;color:#137333;border:1px solid #c6eccf}
+  .chip-error{background:#fdecea;color:#b00020;border:1px solid #f5c2c7}
+  .chip-pend{background:#e7f0ff;color:#094db1;border:1px solid #c7dcff}
+  .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+</style>
+</head>
+<body class="bg-light">
+<div class="container py-4">
 
-  <!-- F1: Gherkin (envío, trazabilidad, reintento) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Gherkin --></div></div>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">🧾 Boleta y Bitácora de Envíos</h3>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-secondary btn-sm" href="B13pedidoconfirmar.html">Volver a confirmar</a>
+      <a class="btn btn-outline-secondary btn-sm" href="B14pago.html">Ir a pago</a>
+    </div>
+  </div>
 
-  <!-- F2: Mensaje post-pago “boleta enviada” -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- Modal/alert ✔ --></div></div>
+  <!-- Acciones principales -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label">Simular resultado de envío</label>
+          <select id="simEnvio" class="form-select">
+            <option value="ok">Envío exitoso</option>
+            <option value="fail">Falla de envío</option>
+          </select>
+        </div>
+        <div class="col-md-8 d-grid d-md-flex justify-content-md-end">
+          <button id="btnGenerarUltimo" class="btn btn-primary">
+            Generar boleta del último pedido
+          </button>
+        </div>
+      </div>
+      <div class="form-text">
+        Toma el pedido más reciente de <code>pedidos_hist_b13</code> y crea su boleta. El resultado
+        del envío (OK/ERROR) usa el selector de simulación.
+      </div>
+    </div>
+  </div>
 
-  <!-- F3: Vista “correo cliente” (representación simple) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- preview correo --></div></div>
+  <!-- Vista “correo cliente” (preview) -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <h5 class="mb-3">📩 Vista previa de correo (cliente)</h5>
+      <div id="correoPrev" class="border rounded p-3 bg-white">
+        <div class="text-muted">No hay correo para mostrar aún.</div>
+      </div>
+    </div>
+  </div>
 
-  <!-- F4: Bitácora de envíos (tabla con ID, fecha/hora, pedido, resultado, intentos, ver...) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- tabla bitácora --></div></div>
+  <!-- Bitácora -->
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0">📚 Bitácora de envíos</h5>
+        <button id="btnBorrarTodo" class="btn btn-outline-danger btn-sm">Borrar bitácora</button>
+      </div>
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>ID Boleta</th>
+              <th>Pedido</th>
+              <th>Cliente</th>
+              <th>Emisión</th>
+              <th>Estado</th>
+              <th>Intentos</th>
+              <th>Última actualización</th>
+              <th class="text-end">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
-  <!-- F5: Estado de envío (detalle + reintentar) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- estado envío + historial --></div></div>
+  <!-- Modal detalle/historial -->
+  <div class="modal fade" id="modalDetalle" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Detalle de envío</h5>
+          <button class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div id="detalleBody"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  <!-- F6: Clase "Boleta" (idBoleta, idPedido, fechaEmision, clienteCorreo, archivoPDF, estadoEnvio, intentos, resultado, mensajeError?, ultimaActualizacion) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Clase Boleta --></div></div>
+</div>
 
-</div></body></html>
+<script>
+/* ====================== Storage Keys ====================== */
+const KEY_PEDIDOS = 'pedidos_hist_b13';
+const KEY_BOLETAS = 'boletas_b15';
+
+/* ====================== Helpers ====================== */
+const fmt = (n)=>'$'+Number(n||0).toLocaleString('es-CL');
+const nowIso = ()=>new Date().toISOString();
+const chip = (estado)=>{
+  if (estado==='ENVIADO')  return '<span class="chip chip-ok">ENVIADO</span>';
+  if (estado==='FALLIDO')  return '<span class="chip chip-error">FALLIDO</span>';
+  return '<span class="chip chip-pend">PENDIENTE</span>';
+};
+
+function loadPedidos(){ return JSON.parse(localStorage.getItem(KEY_PEDIDOS) || '[]'); }
+function loadBoletas(){ return JSON.parse(localStorage.getItem(KEY_BOLETAS) || '[]'); }
+function saveBoletas(list){ localStorage.setItem(KEY_BOLETAS, JSON.stringify(list)); }
+
+/* ====================== Generación de boleta ====================== */
+async function crearPDFSimulado(boleta){
+  // Crea un “PDF” de texto para descarga (demo)
+  const contenido = [
+    'EL MARIACHI – BOLETA',
+    '---------------------',
+    `Boleta: ${boleta.idBoleta}`,
+    `Pedido: ${boleta.idPedido}`,
+    `Fecha emisión: ${boleta.fechaEmision}`,
+    `Cliente: ${boleta.clienteCorreo}`,
+    '',
+    `Total: ${fmt(boleta.total)}`,
+    ''
+  ].join('\n');
+  const blob = new Blob([contenido], {type:'application/pdf'});
+  const url = URL.createObjectURL(blob);
+  return url; // data URL para <a href>
+}
+
+function armarCorreoPrev(boleta){
+  const box = document.getElementById('correoPrev');
+  box.innerHTML = `
+    <div class="d-flex justify-content-between mb-2">
+      <div>
+        <div><strong>Para:</strong> ${boleta.clienteCorreo}</div>
+        <div><strong>Asunto:</strong> Tu boleta #${boleta.idBoleta} – El Mariachi</div>
+      </div>
+      <span>${chip(boleta.estadoEnvio)}</span>
+    </div>
+    <hr>
+    <p>¡Gracias por tu compra! Adjuntamos tu boleta en PDF.</p>
+    <ul class="mb-2">
+      <li><strong>Pedido:</strong> ${boleta.idPedido}</li>
+      <li><strong>Total:</strong> ${fmt(boleta.total)}</li>
+      <li><strong>Fecha emisión:</strong> <span class="mono">${boleta.fechaEmision}</span></li>
+    </ul>
+    <a href="${boleta.archivoPDF}" download="boleta-${boleta.idBoleta}.pdf" class="btn btn-sm btn-outline-primary">Descargar PDF</a>
+  `;
+}
+
+/* ====================== Render Bitácora ====================== */
+function renderTable(){
+  const list = loadBoletas();
+  const tbody = document.getElementById('tbody');
+  if (list.length===0){
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">Sin registros.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(b => `
+    <tr data-id="${b.idBoleta}">
+      <td class="mono">#${b.idBoleta}</td>
+      <td class="mono">#${b.idPedido}</td>
+      <td>${b.clienteCorreo}</td>
+      <td class="mono">${b.fechaEmision}</td>
+      <td>${chip(b.estadoEnvio)}</td>
+      <td>${b.intentos}</td>
+      <td class="mono">${b.ultimaActualizacion||'-'}</td>
+      <td class="text-end">
+        <a href="${b.archivoPDF||'#'}" ${b.archivoPDF?'':'disabled'} class="btn btn-sm btn-outline-primary me-2" ${b.archivoPDF?'':'tabindex="-1" aria-disabled="true"'}>PDF</a>
+        <button class="btn btn-sm btn-outline-success me-2 btn-reintentar">Reintentar</button>
+        <button class="btn btn-sm btn-outline-secondary btn-detalle">Detalle</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+/* ====================== Lógica de envío ====================== */
+function simularEnvio(){
+  const sel = document.getElementById('simEnvio');
+  return sel.value === 'ok';
+}
+
+async function procesarEnvio(boleta, esReintento=false){
+  // genera PDF si no existe
+  if (!boleta.archivoPDF){
+    boleta.archivoPDF = await crearPDFSimulado(boleta);
+  }
+  boleta.intentos += 1;
+
+  const ok = simularEnvio();
+  if (ok){
+    boleta.estadoEnvio = 'ENVIADO';
+    boleta.resultado = 'Boleta enviada al correo del cliente';
+    boleta.mensajeError = '';
+  }else{
+    boleta.estadoEnvio = 'FALLIDO';
+    boleta.resultado = 'Error al conectar con servidor SMTP';
+    boleta.mensajeError = 'Timeout enviando correo';
+  }
+  const evento = {
+    fecha: nowIso(),
+    resultado: boleta.estadoEnvio,
+    mensaje: boleta.mensajeError || boleta.resultado
+  };
+  boleta.historial.push(evento);
+  boleta.ultimaActualizacion = evento.fecha;
+
+  // guardar
+  const list = loadBoletas();
+  const idx = list.findIndex(x => x.idBoleta===boleta.idBoleta);
+  if (idx>=0) list[idx]=boleta; else list.unshift(boleta);
+  saveBoletas(list);
+
+  // actualizar UI
+  armarCorreoPrev(boleta);
+  renderTable();
+}
+
+/* ====================== Crear boleta del último pedido ====================== */
+async function crearBoletaUltimoPedido(){
+  const pedidos = loadPedidos();
+  if (!pedidos.length){
+    toast('No hay pedidos en historial (B13).');
+    return;
+  }
+  const p = pedidos[0]; // más reciente
+  const boleta = {
+    idBoleta: Date.now(),
+    idPedido: p.id,
+    fechaEmision: nowIso(),
+    clienteCorreo: p.cliente || 'cliente@elmariachi.cl',
+    archivoPDF: '',
+    estadoEnvio: 'PENDIENTE',
+    intentos: 0,
+    total: p.total || 0,
+    resultado: '',
+    mensajeError: '',
+    ultimaActualizacion: '',
+    historial: []
+  };
+  await procesarEnvio(boleta);
+}
+
+/* ====================== Eventos UI ====================== */
+document.getElementById('btnGenerarUltimo').addEventListener('click', crearBoletaUltimoPedido);
+
+document.getElementById('btnBorrarTodo').addEventListener('click', ()=>{
+  if (!confirm('¿Borrar toda la bitácora de boletas?')) return;
+  saveBoletas([]);
+  renderTable();
+  document.getElementById('correoPrev').innerHTML = '<div class="text-muted">Bitácora vacía.</div>';
+});
+
+document.getElementById('tbody').addEventListener('click', async (e)=>{
+  const tr = e.target.closest('tr[data-id]'); if(!tr) return;
+  const id = Number(tr.dataset.id);
+  const list = loadBoletas();
+  const b = list.find(x => x.idBoleta===id); if(!b) return;
+
+  if (e.target.classList.contains('btn-reintentar')){
+    await procesarEnvio(b, true);
+  }
+  if (e.target.classList.contains('btn-detalle')){
+    const body = document.getElementById('detalleBody');
+    body.innerHTML = `
+      <div class="mb-2"><strong>Boleta:</strong> <span class="mono">#${b.idBoleta}</span></div>
+      <div class="mb-2"><strong>Pedido:</strong> <span class="mono">#${b.idPedido}</span></div>
+      <div class="mb-2"><strong>Cliente:</strong> ${b.clienteCorreo}</div>
+      <div class="mb-2"><strong>Total:</strong> ${fmt(b.total)}</div>
+      <div class="mb-2"><strong>Estado actual:</strong> ${chip(b.estadoEnvio)}</div>
+      <hr>
+      <h6>Historial</h6>
+      <ul class="mb-0">
+        ${b.historial.map(h => `
+          <li class="mb-1"><span class="mono">${h.fecha}</span> — <strong>${h.resultado}</strong> — ${h.mensaje}</li>
+        `).join('')}
+      </ul>
+    `;
+    new bootstrap.Modal(document.getElementById('modalDetalle')).show();
+    armarCorreoPrev(b);
+  }
+});
+
+/* ====================== Toast ====================== */
+function toast(msg){
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="toast text-bg-dark border-0 position-fixed bottom-0 end-0 m-3" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body">${msg}</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+      </div>
+    </div>`;
+  const t = wrap.firstElementChild;
+  document.body.appendChild(t);
+  const bs = new bootstrap.Toast(t,{delay:2500});
+  bs.show();
+  t.addEventListener('hidden.bs.toast', ()=> t.remove());
+}
+
+/* ====================== Init ====================== */
+renderTable();
+// si hay alguna boleta, mostrar la última en el preview
+const _listInit = loadBoletas();
+if (_listInit.length) armarCorreoPrev(_listInit[0]);
+</script>
+</body>
+</html>
+

@@ -1,29 +1,285 @@
-<!DOCTYPE html><html lang="es"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>B21 – Control de acceso</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</head><body><div class="container">
+<style>
+  body{background:#f7f7fb}
+  .chip{border:1px solid #e5e7eb;background:#fff;border-radius:999px;padding:.15rem .55rem;font-size:.78rem}
+</style>
+</head>
+<body>
+<div class="container py-4">
 
-  <!-- F1: Gherkin (desactivación, bloqueo, restablecimiento) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Gherkin --></div></div>
+  <!-- Controles -->
+  <div class="d-flex gap-2 mb-3">
+    <button id="btnSeed" class="btn btn-success">Cargar demo</button>
+    <button id="btnClear" class="btn btn-outline-danger">Vaciar datos</button>
+    <div class="ms-auto">
+      <span class="chip">Max intentos fallidos: <strong id="cfgMax">3</strong></span>
+      <span class="chip">Token reset: <strong id="cfgMin">15 min</strong></span>
+    </div>
+  </div>
 
-  <!-- F2: Tabla de usuarios con switches activo/inactivo -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- tabla + switches --></div></div>
+  <!-- Tabla de usuarios -->
+  <div class="table-responsive">
+    <table class="table align-middle table-striped" id="tabla">
+      <thead class="table-light">
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Correo</th>
+          <th>Rol</th>
+          <th>Estado</th>
+          <th>Intentos</th>
+          <th>Bloqueado</th>
+          <th>Token / Vence</th>
+          <th class="text-end">Acciones</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
-  <!-- F3: Acción “Restablecer contraseña” -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- botón reset + correo enviado --></div></div>
+  <!-- Mensajes -->
+  <div id="msg" class="mt-3"></div>
 
-  <!-- F4: Escenario 1: desactivación -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- Modal ⚠ cuenta inactiva --></div></div>
+</div>
 
-  <!-- F5: Escenario 2: bloqueo por intentos -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- aviso cuenta bloqueada --></div></div>
+<script>
+/* =========================================================
+   CONFIG
+========================================================= */
+const MAX_INTENTOS = 3;
+const RESET_MINUTOS = 15;
+document.getElementById('cfgMax').textContent = MAX_INTENTOS;
+document.getElementById('cfgMin').textContent = RESET_MINUTOS + ' min';
 
-  <!-- F6: Escenario 3: restablecimiento -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- confirmación de envío de enlace --></div></div>
+/* =========================================================
+   STORAGE
+========================================================= */
+const K_USERS = 'b21_users';
+const K_CTRL  = 'b21_control';
 
-  <!-- F7: Clase "ControlAcceso" (usuario, estado, intentosFallidos, bloqueado, fechaBloqueo?, tokenReset?, validoHasta?) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Clase ControlAcceso --></div></div>
+const load = (k, d=[]) => { try { return JSON.parse(localStorage.getItem(k)||JSON.stringify(d)); } catch { return d; } };
+const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
 
-</div></body></html>
+/* =========================================================
+   MODELOS
+========================================================= */
+const nowISO = () => new Date().toISOString();
+const addMin  = (date, m) => new Date(new Date(date).getTime() + m*60000);
+const rndToken = () => crypto.getRandomValues(new Uint32Array(4)).join('-');
+
+/* =========================================================
+   UI helpers
+========================================================= */
+const $tbody = document.querySelector('#tabla tbody');
+const $msg   = document.getElementById('msg');
+
+function notify(html, type='info', timeout=2500){
+  $msg.innerHTML = `<div class="alert alert-${type}">${html}</div>`;
+  if(timeout) setTimeout(()=> $msg.innerHTML = '', timeout);
+}
+
+/* =========================================================
+   CORE
+========================================================= */
+function getAll(){
+  const users = load(K_USERS);
+  const ctrl  = load(K_CTRL);
+  return users.map(u => {
+    const c = ctrl.find(x=>x.userId===u.id) || {userId:u.id,intentosFallidos:0,bloqueado:false};
+    return {u, c};
+  });
+}
+
+function setEstado(userId, activo){
+  const users = load(K_USERS);
+  const u = users.find(x=>x.id===userId);
+  if(!u) return;
+  u.estado = activo ? 'activo' : 'inactivo';
+  save(K_USERS, users);
+  notify(`Cuenta de <b>${u.correo}</b> ${activo?'activada':'desactivada'}.`, activo?'success':'warning');
+  render();
+}
+
+function simularFallo(userId){
+  const ctrl = load(K_CTRL);
+  const c = ctrl.find(x=>x.userId===userId);
+  if(!c) return;
+  c.intentosFallidos++;
+  if(c.intentosFallidos >= MAX_INTENTOS){
+    c.bloqueado = true;
+    c.fechaBloqueo = nowISO();
+    notify(`Cuenta bloqueada por múltiples intentos fallidos.`, 'danger');
+  }else{
+    notify(`Intento fallido #${c.intentosFallidos}.`, 'warning');
+  }
+  save(K_CTRL, ctrl);
+  render();
+}
+
+function simularExito(userId){
+  const ctrl = load(K_CTRL);
+  const users = load(K_USERS);
+  const u = users.find(x=>x.id===userId);
+  const c = ctrl.find(x=>x.userId===userId);
+  if(u.estado!=='activo') { notify('Cuenta inactiva: no puede iniciar sesión.','danger'); return; }
+  if(c.bloqueado){ notify('Cuenta bloqueada: contacte al administrador.','danger'); return; }
+  c.intentosFallidos = 0;
+  save(K_CTRL, ctrl);
+  notify('Inicio de sesión exitoso.','success');
+  render();
+}
+
+function desbloquear(userId){
+  const ctrl = load(K_CTRL);
+  const c = ctrl.find(x=>x.userId===userId);
+  if(!c) return;
+  c.bloqueado=false;
+  c.intentosFallidos=0;
+  c.fechaBloqueo=null;
+  save(K_CTRL, ctrl);
+  notify('Cuenta desbloqueada.','success');
+  render();
+}
+
+function resetPassword(userId){
+  const ctrl = load(K_CTRL);
+  const c = ctrl.find(x=>x.userId===userId);
+  if(!c) return;
+  c.tokenReset  = rndToken();
+  c.validoHasta = addMin(new Date(), RESET_MINUTOS).toISOString();
+  save(K_CTRL, ctrl);
+  const users = load(K_USERS);
+  const u = users.find(x=>x.id===userId);
+  notify(`Enlace de restablecimiento enviado a <b>${u.correo}</b>. Token: <code>${c.tokenReset}</code>`, 'info', 4000);
+  render();
+}
+
+function probarEnlace(userId){
+  const ctrl = load(K_CTRL);
+  const c = ctrl.find(x=>x.userId===userId);
+  if(!c || !c.tokenReset) { notify('No hay token válido para este usuario.','warning'); return; }
+  const vigente = new Date() < new Date(c.validoHasta);
+  if(!vigente) { notify('Token expirado. Envíe uno nuevo.','danger'); return; }
+  c.tokenReset = null;
+  c.validoHasta = null;
+  save(K_CTRL, ctrl);
+  notify('Token válido. Contraseña restablecida (simulado).','success');
+  render();
+}
+
+/* =========================================================
+   RENDER
+========================================================= */
+function render(){
+  const data = getAll();
+  $tbody.innerHTML = '';
+  if(!data.length){
+    $tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted">Sin usuarios.</td></tr>`;
+    return;
+  }
+  for(const {u,c} of data){
+    const tr = document.createElement('tr');
+    const checked = u.estado==='activo' ? 'checked' : '';
+    const estadoHtml = `
+      <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" ${checked} data-activo="${u.id}">
+        <label class="form-check-label">${u.estado}</label>
+      </div>`;
+    const bloqHtml = c.bloqueado
+      ? `<span class="badge text-bg-danger">Sí</span><br><small>${new Date(c.fechaBloqueo).toLocaleString('es-CL')}</small>`
+      : `<span class="badge text-bg-success">No</span>`;
+    const tokenHtml = c.tokenReset
+      ? `<code>${(c.tokenReset+'').slice(0,8)}…</code><br><small>hasta ${new Date(c.validoHasta).toLocaleTimeString('es-CL')}</small>`
+      : `<span class="text-muted">—</span>`;
+
+    tr.innerHTML = `
+      <td>${u.id}</td>
+      <td>${u.nombre}</td>
+      <td>${u.correo}</td>
+      <td><span class="chip">${u.rol}</span></td>
+      <td>${estadoHtml}</td>
+      <td>${c.intentosFallidos}</td>
+      <td>${bloqHtml}</td>
+      <td>${tokenHtml}</td>
+      <td class="text-end">
+        <div class="btn-group btn-group-sm">
+          <button class="btn btn-outline-secondary" data-fallo="${u.id}">Fallar login</button>
+          <button class="btn btn-outline-success" data-ok="${u.id}">Login OK</button>
+          <button class="btn btn-outline-warning" data-reset="${u.id}">Reset</button>
+          <button class="btn btn-outline-primary" data-test="${u.id}">Probar enlace</button>
+          <button class="btn btn-outline-dark" ${c.bloqueado?'':'disabled'} data-unlock="${u.id}">Desbloquear</button>
+        </div>
+      </td>
+    `;
+    $tbody.appendChild(tr);
+  }
+
+  // Delegar eventos
+  $tbody.querySelectorAll('[data-activo]').forEach(sw=>{
+    sw.addEventListener('change', e=>{
+      const id = +e.target.getAttribute('data-activo');
+      setEstado(id, e.target.checked);
+    });
+  });
+  $tbody.querySelectorAll('[data-fallo]').forEach(b=>{
+    b.addEventListener('click', e=> simularFallo(+e.target.getAttribute('data-fallo')));
+  });
+  $tbody.querySelectorAll('[data-ok]').forEach(b=>{
+    b.addEventListener('click', e=> simularExito(+e.target.getAttribute('data-ok')));
+  });
+  $tbody.querySelectorAll('[data-reset]').forEach(b=>{
+    b.addEventListener('click', e=> resetPassword(+e.target.getAttribute('data-reset')));
+  });
+  $tbody.querySelectorAll('[data-test]').forEach(b=>{
+    b.addEventListener('click', e=> probarEnlace(+e.target.getAttribute('data-test')));
+  });
+  $tbody.querySelectorAll('[data-unlock]').forEach(b=>{
+    b.addEventListener('click', e=> desbloquear(+e.target.getAttribute('data-unlock')));
+  });
+}
+
+/* =========================================================
+   DEMO
+========================================================= */
+document.getElementById('btnSeed').addEventListener('click', ()=>{
+  const users = [
+    {id:1, nombre:'Karla Díaz',  correo:'karla@elmariachi.cl',  rol:'admin',   estado:'activo'},
+    {id:2, nombre:'Pedro Pérez', correo:'pedro@elmariachi.cl',  rol:'cajero',  estado:'activo'},
+    {id:3, nombre:'Ana Ríos',    correo:'ana@elmariachi.cl',    rol:'despacho',estado:'inactivo'}
+  ];
+  const ctrl = users.map(u=>({
+    userId:u.id,
+    intentosFallidos: 0,
+    bloqueado: false,
+    fechaBloqueo: null,
+    tokenReset: null,
+    validoHasta: null
+  }));
+  save(K_USERS, users);
+  save(K_CTRL, ctrl);
+  notify('Datos de demostración cargados.','success');
+  render();
+});
+
+document.getElementById('btnClear').addEventListener('click', ()=>{
+  localStorage.removeItem(K_USERS);
+  localStorage.removeItem(K_CTRL);
+  render();
+  notify('Datos limpiados.','secondary');
+});
+
+/* =========================================================
+   INIT
+========================================================= */
+window.addEventListener('load', render);
+</script>
+
+</body>
+</html>

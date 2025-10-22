@@ -1,26 +1,326 @@
-<!DOCTYPE html><html lang="es"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>B17 – Reporte de ventas</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</head><body><div class="container">
+<style>
+  .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace}
+  .chip{padding:.2rem .55rem;border-radius:999px;font-size:.78rem}
+  .chip-ok{background:#e6f4ea;color:#137333;border:1px solid #c6eccf}
+  .chip-warn{background:#fff4e5;color:#8a5300;border:1px solid #ffe0b3}
+  .chip-err{background:#fdecea;color:#b00020;border:1px solid #f5c2c7}
+</style>
+</head>
+<body class="bg-light">
+<div class="container py-4">
 
-  <!-- F1: Gherkin (generación por periodo, exportación consistente, tiempo < 3s) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Gherkin --></div></div>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">📈 Reporte de ventas</h3>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-secondary btn-sm" href="B13pedidoconfirmar.html">B13</a>
+      <a class="btn btn-outline-secondary btn-sm" href="B14pago.html">B14</a>
+      <a class="btn btn-outline-secondary btn-sm" href="B15boleta.html">B15</a>
+      <a class="btn btn-outline-secondary btn-sm" href="B16anulacion.html">B16</a>
+    </div>
+  </div>
 
-  <!-- F2: Form filtros (fecha desde/hasta, top N) + botón Generar -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- filtros --></div></div>
+  <!-- Filtros -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="row g-3 align-items-end">
+        <div class="col-sm-4">
+          <label class="form-label">Desde</label>
+          <input id="fDesde" type="date" class="form-control">
+        </div>
+        <div class="col-sm-4">
+          <label class="form-label">Hasta</label>
+          <input id="fHasta" type="date" class="form-control">
+        </div>
+        <div class="col-sm-2">
+          <label class="form-label">Top N</label>
+          <input id="topN" type="number" min="1" value="5" class="form-control">
+        </div>
+        <div class="col-sm-2 d-grid">
+          <button id="btnGenerar" class="btn btn-primary">Generar</button>
+        </div>
+      </div>
+      <div class="form-text">Se usa el historial de pedidos de <code>pedidos_hist_b13</code>.</div>
+    </div>
+  </div>
 
-  <!-- F3: Vista resultado (totales, subtotal, impuestos, ranking top) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- resultados --></div></div>
+  <!-- Tiempo de generación -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center">
+        <span><strong>Tiempo de generación:</strong> <span id="tiempo" class="mono">—</span></span>
+        <span id="badgeTiempo" class="chip chip-ok d-none">OK &lt;= 3s</span>
+      </div>
+      <div class="progress mt-2" style="height:10px">
+        <div id="bar" class="progress-bar" role="progressbar" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
 
-  <!-- F4: Modal Exportar (PDF / CSV) con nota “misma vista” -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- modal exportar --></div></div>
+  <!-- Resultados -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0">Resultados</h5>
+        <button id="btnExportar" class="btn btn-success btn-sm" disabled>Exportar</button>
+      </div>
+      <div id="resumen" class="row g-3">
+        <div class="col-sm-4">
+          <div class="border rounded p-3 bg-white">
+            <div class="text-muted small">Subtotal</div>
+            <div id="subtotal" class="h4 mb-0 mono">$0</div>
+          </div>
+        </div>
+        <div class="col-sm-4">
+          <div class="border rounded p-3 bg-white">
+            <div class="text-muted small">Impuestos (IVA 19%)</div>
+            <div id="impuestos" class="h4 mb-0 mono">$0</div>
+          </div>
+        </div>
+        <div class="col-sm-4">
+          <div class="border rounded p-3 bg-white">
+            <div class="text-muted small">Total</div>
+            <div id="total" class="h4 mb-0 mono">$0</div>
+          </div>
+        </div>
+      </div>
 
-  <!-- F5: Panel “tiempo de generación” (barra progreso/tiempo estimado) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- tiempo/progreso --></div></div>
+      <hr>
 
-  <!-- F6: Clase "ReporteVentas" (id, fechas, totales, impuestos, rankingProductos, formatoExportacion, tiempoGeneracion, fechaGeneracion) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Clase ReporteVentas --></div></div>
+      <h6 class="mb-2">Top N productos</h6>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th>Producto</th>
+              <th class="text-end">Cantidad</th>
+              <th class="text-end">Ventas</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyTop"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
-</div></body></html>
+  <!-- Modal Exportar -->
+  <div class="modal fade" id="modalExp" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Exportar reporte</h5>
+          <button class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-1">Se exportará exactamente lo que ves en pantalla (mismos totales y ranking).</p>
+          <div class="d-grid gap-2">
+            <button id="expCSV" class="btn btn-outline-primary">Exportar CSV</button>
+            <button id="expPDF" class="btn btn-outline-secondary">Exportar PDF</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const KEY_PEDIDOS = 'pedidos_hist_b13';
+const IVA = 0.19;
+
+// ====== Utils ======
+const fmt = n => '$' + Number(n||0).toLocaleString('es-CL');
+const parseISO = s => new Date(s);
+const toYmd = d => d.toISOString().slice(0,10);
+
+// ====== Estado de vista (para exportar la "misma vista") ======
+const viewState = {
+  periodo: {desde:null, hasta:null},
+  topN: 5,
+  subtotal: 0,
+  impuestos: 0,
+  total: 0,
+  ranking: [] // [{nombre,cantidad,ventas}]
+};
+
+// ====== Carga de datos (B13) ======
+function loadPedidos(){
+  return JSON.parse(localStorage.getItem(KEY_PEDIDOS) || '[]');
+}
+
+// ====== Filtros de fecha ======
+function inRange(dateISO, desdeISO, hastaISO){
+  const d = parseISO(dateISO);
+  const d0 = desdeISO ? parseISO(desdeISO) : null;
+  const d1 = hastaISO ? parseISO(hastaISO) : null;
+  if (d0 && d < new Date(d0.getFullYear(),d0.getMonth(),d0.getDate())) return false;
+  if (d1 && d > new Date(d1.getFullYear(),d1.getMonth(),d1.getDate(),23,59,59,999)) return false;
+  return true;
+}
+
+// ====== Generación del reporte ======
+async function generar(){
+  const t0 = performance.now();
+  const desde = document.getElementById('fDesde').value || null;
+  const hasta = document.getElementById('fHasta').value || null;
+  const topN = Math.max(1, parseInt(document.getElementById('topN').value || '5',10));
+  document.getElementById('btnExportar').disabled = true;
+  animBar(0);
+
+  // Simular carga (progreso)
+  await animWork(400);
+
+  const pedidos = loadPedidos()
+    .filter(p => p.estado!=='ANULADO') // no contar anulados
+    .filter(p => !p.fecha || inRange(p.fecha, desde, hasta));
+
+  // Subtotal y ranking por producto
+  let subtotal = 0;
+  const map = new Map(); // nombre -> {cantidad, ventas}
+  pedidos.forEach(p=>{
+    (p.detalles||[]).forEach(d=>{
+      subtotal += d.subtotal || 0;
+      const k = d.nombreProducto;
+      if(!map.has(k)) map.set(k,{cantidad:0, ventas:0});
+      const it = map.get(k);
+      it.cantidad += d.cantidad || 0;
+      it.ventas   += d.subtotal || 0;
+    });
+  });
+
+  const ranking = Array.from(map, ([nombre, v])=>({nombre, ...v}))
+                      .sort((a,b)=> b.ventas - a.ventas)
+                      .slice(0, topN);
+
+  const impuestos = Math.round(subtotal * IVA);
+  const total = subtotal + impuestos;
+
+  // Actualizar vista
+  viewState.periodo = {desde, hasta};
+  viewState.topN = topN;
+  viewState.subtotal = subtotal;
+  viewState.impuestos = impuestos;
+  viewState.total = total;
+  viewState.ranking = ranking;
+
+  pintarResultados();
+
+  // tiempo
+  const t1 = performance.now();
+  const ms = Math.round(t1 - t0);
+  document.getElementById('tiempo').textContent = (ms/1000).toFixed(3)+' s';
+  const badge = document.getElementById('badgeTiempo');
+  badge.classList.remove('d-none','chip-ok','chip-warn','chip-err');
+  if (ms <= 3000) { badge.textContent='OK <= 3s'; badge.classList.add('chip-ok'); }
+  else if (ms <= 5000) { badge.textContent='Lento (>3s)'; badge.classList.add('chip-warn'); }
+  else { badge.textContent='Muy lento'; badge.classList.add('chip-err'); }
+
+  animBar(100);
+  document.getElementById('btnExportar').disabled = false;
+}
+
+function pintarResultados(){
+  document.getElementById('subtotal').textContent = fmt(viewState.subtotal);
+  document.getElementById('impuestos').textContent = fmt(viewState.impuestos);
+  document.getElementById('total').textContent = fmt(viewState.total);
+
+  const tb = document.getElementById('tbodyTop');
+  tb.innerHTML = viewState.ranking.map((r,i)=>`
+    <tr>
+      <td>${i+1}</td>
+      <td>${r.nombre}</td>
+      <td class="text-end mono">${r.cantidad}</td>
+      <td class="text-end mono">${fmt(r.ventas)}</td>
+    </tr>
+  `).join('') || `<tr><td colspan="4" class="text-center text-muted">Sin datos en el período.</td></tr>`;
+}
+
+// ====== Exportar (misma vista) ======
+function exportCSV(){
+  const lines = [];
+  const hdr = [
+    'Periodo',
+    'Subtotal',
+    'Impuestos',
+    'Total',
+    `Top${viewState.topN} (nombre|cantidad|ventas)`
+  ];
+  lines.push(hdr.join(','));
+  const periodo = `${viewState.periodo.desde||'-'} a ${viewState.periodo.hasta||'-'}`;
+  const row = [
+    `"${periodo}"`,
+    viewState.subtotal,
+    viewState.impuestos,
+    viewState.total,
+    `"${viewState.ranking.map(r=>`${r.nombre}|${r.cantidad}|${r.ventas}`).join(' ; ')}"`
+  ];
+  lines.push(row.join(','));
+  const csv = lines.join('\n');
+  const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  download(url, `reporte-${Date.now()}.csv`);
+}
+
+function exportPDF(){
+  // “PDF” simulado: texto con la misma info que se ve
+  const periodo = `${viewState.periodo.desde||'-'} a ${viewState.periodo.hasta||'-'}`;
+  const txt = [
+    'REPORTE DE VENTAS – EL MARIACHI',
+    '--------------------------------',
+    `Periodo: ${periodo}`,
+    `Top N: ${viewState.topN}`,
+    '',
+    `Subtotal: ${viewState.subtotal}`,
+    `Impuestos: ${viewState.impuestos}`,
+    `Total: ${viewState.total}`,
+    '',
+    'Ranking:',
+    ...viewState.ranking.map((r,i)=> `${i+1}. ${r.nombre} – cant=${r.cantidad} – ventas=${r.ventas}`),
+    ''
+  ].join('\n');
+  const blob = new Blob([txt],{type:'application/pdf'});
+  const url = URL.createObjectURL(blob);
+  download(url, `reporte-${Date.now()}.pdf`);
+}
+
+function download(url, name){
+  const a = document.createElement('a');
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+
+// ====== Progreso/anim ======
+function animBar(pct){ document.getElementById('bar').style.width = pct+'%'; }
+function animWork(ms){
+  return new Promise(res=>{
+    let t=0; const step=20; const id=setInterval(()=>{
+      t+=step; animBar(Math.min(90, Math.round((t/ms)*90)));
+      if(t>=ms){ clearInterval(id); res(); }
+    }, step);
+  });
+}
+
+// ====== Eventos ======
+document.getElementById('btnGenerar').addEventListener('click', generar);
+document.getElementById('btnExportar').addEventListener('click', ()=> new bootstrap.Modal(document.getElementById('modalExp')).show());
+document.getElementById('expCSV').addEventListener('click', exportCSV);
+document.getElementById('expPDF').addEventListener('click', exportPDF);
+
+// ====== Default periodo: mes actual ======
+(function init(){
+  const today = new Date();
+  const y = today.getFullYear(), m = today.getMonth();
+  document.getElementById('fDesde').value = toYmd(new Date(y,m,1));
+  document.getElementById('fHasta').value = toYmd(new Date(y,m+1,0));
+})();
+</script>
+</body>
+</html>

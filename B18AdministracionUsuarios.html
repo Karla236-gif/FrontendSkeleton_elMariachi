@@ -1,23 +1,283 @@
-<!DOCTYPE html><html lang="es"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>B18 – Administración de usuarios</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</head><body><div class="container">
+<style>
+  .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace}
+  .chip{padding:.2rem .55rem;border-radius:999px;font-size:.78rem}
+  .chip-admin{background:#e6f4ea;color:#137333;border:1px solid #c6eccf}
+  .chip-cajero{background:#e8f0fe;color:#1a73e8;border:1px solid #c6dafc}
+  .chip-cliente{background:#fff4e5;color:#8a5300;border:1px solid #ffe0b3}
+</style>
+</head>
+<body class="bg-light">
+<div class="container py-4">
 
-  <!-- F1: Gherkin (correo inválido, control de acceso, cambio de rol) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Gherkin --></div></div>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">👥 Administración de usuarios</h3>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-secondary btn-sm" href="index.html">Inicio</a>
+      <a class="btn btn-outline-secondary btn-sm" href="B17reporte.html">B17</a>
+    </div>
+  </div>
 
-  <!-- F2: Form creación de usuario (nombre, correo, rol) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- form crear usuario --></div></div>
+  <!-- Contexto de sesión -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="row g-2 align-items-end">
+        <div class="col-sm-4">
+          <label class="form-label">Usuario actual (simulado)</label>
+          <input id="who" type="email" class="form-control" value="admin@elmariachi.cl">
+        </div>
+        <div class="col-sm-3">
+          <label class="form-label">Rol actual</label>
+          <select id="role" class="form-select">
+            <option value="cliente">cliente</option>
+            <option value="cajero">cajero</option>
+            <option value="admin" selected>admin</option>
+          </select>
+        </div>
+        <div class="col-sm-3 d-grid">
+          <button id="btnEntrar" class="btn btn-primary">Entrar al mantenedor</button>
+        </div>
+        <div class="col-sm-2 text-end">
+          <span id="badgeRol" class="chip chip-admin">admin</span>
+        </div>
+      </div>
+      <div class="form-text">Para el Escenario 2, cambia el rol a <b>cliente</b> o <b>cajero</b> e intenta entrar o cambiar roles.</div>
+    </div>
+  </div>
 
-  <!-- F3: Error correo inválido -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- Modal ✖ OK --></div></div>
+  <!-- Mantenedor -->
+  <div id="mantenedor" class="d-none">
 
-  <!-- F4: Confirmar cambio de rol -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- Modal confirmar sí/cancelar --></div></div>
+    <!-- Form crear -->
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h5 class="mb-3">Crear usuario</h5>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Nombre</label>
+            <input id="uNombre" class="form-control" placeholder="Nombre y apellido">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Correo</label>
+            <input id="uCorreo" type="email" class="form-control" placeholder="ej: persona@gmail.com">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Rol</label>
+            <select id="uRol" class="form-select">
+              <option value="cliente">cliente</option>
+              <option value="cajero">cajero</option>
+              <option value="admin">admin</option>
+            </select>
+          </div>
+          <div class="col-md-1 d-grid">
+            <label class="form-label">&nbsp;</label>
+            <button id="btnCrear" class="btn btn-success">Crear</button>
+          </div>
+        </div>
+        <div class="form-text mt-1">Escenario 1 valida formato de correo y dominio “verificado por API” (gmail, outlook, hotmail, edu.pe).</div>
+      </div>
+    </div>
 
-  <!-- F5: Error sin autorización -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- Modal ✖ OK --></div></div>
+    <!-- Lista -->
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="mb-3">Usuarios registrados</h5>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>#</th>
+                <th>Nombre</th>
+                <th>Correo</th>
+                <th>Rol</th>
+                <th>Cambiar a</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tbUsers"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
 
-</div></body></html>
+  <!-- MODALS -->
+  <!-- Correo inválido -->
+  <div class="modal fade" id="modalMail" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title">Correo inválido / no verificado</h5>
+        <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body"><p id="msgMail" class="mb-0"></p></div>
+      <div class="modal-footer"><button class="btn btn-danger" data-bs-dismiss="modal">OK</button></div>
+    </div></div>
+  </div>
+
+  <!-- Autorización requerida -->
+  <div class="modal fade" id="modalAuth" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+      <div class="modal-header bg-warning">
+        <h5 class="modal-title">Autorización requerida</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body"><p>Necesitas rol <strong>admin</strong> para acceder al mantenedor o cambiar roles.</p></div>
+      <div class="modal-footer"><button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button></div>
+    </div></div>
+  </div>
+
+  <!-- Confirmar cambio de rol -->
+  <div class="modal fade" id="modalRol" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirmar cambio de rol</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Cambiar el rol de <strong id="mUser"></strong> a <strong id="mRol"></strong>?</p>
+      </div>
+      <div class="modal-footer">
+        <button id="btnConfirmRol" class="btn btn-primary">Sí, cambiar</button>
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </div></div>
+  </div>
+
+</div>
+
+<script>
+/* ======= almacenamiento ======= */
+const KEY_USERS = 'b18_users';
+function loadUsers(){ return JSON.parse(localStorage.getItem(KEY_USERS) || '[]'); }
+function saveUsers(list){ localStorage.setItem(KEY_USERS, JSON.stringify(list)); }
+
+/* ======= seed inicial ======= */
+(function seed(){
+  if (!loadUsers().length){
+    saveUsers([
+      {id:1, nombre:'Admin Root', correo:'admin@elmariachi.cl', rol:'admin'},
+      {id:2, nombre:'Cajera Lupita', correo:'lupita@elmariachi.cl', rol:'cajero'},
+      {id:3, nombre:'Cliente Juan', correo:'juanito@gmail.com', rol:'cliente'},
+    ]);
+  }
+})();
+
+/* ======= helpers ======= */
+const mailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
+const dominiosPermitidos = ['gmail.com','outlook.com','hotmail.com','edu.pe'];
+
+function validarEmailAPI(email){
+  if(!mailRegex.test(email)) return {ok:false, motivo:'Formato de correo inválido.'};
+  const dom = email.split('@')[1].toLowerCase();
+  if(!dominiosPermitidos.includes(dom))
+    return {ok:false, motivo:`Dominio ${dom} no verificado por la API.`};
+  return {ok:true};
+}
+function show(el){ el.classList.remove('d-none'); }
+function hide(el){ el.classList.add('d-none'); }
+function badgeFor(rol){
+  if(rol==='admin') return '<span class="chip chip-admin">admin</span>';
+  if(rol==='cajero') return '<span class="chip chip-cajero">cajero</span>';
+  return '<span class="chip chip-cliente">cliente</span>';
+}
+
+/* ======= estado UI ======= */
+const mantenedor = document.getElementById('mantenedor');
+const tb = document.getElementById('tbUsers');
+const who = document.getElementById('who');
+const role = document.getElementById('role');
+const badgeRol = document.getElementById('badgeRol');
+
+function refreshBadge(){ badgeRol.textContent = role.value; badgeRol.className='chip '+(role.value==='admin'?'chip-admin':role.value==='cajero'?'chip-cajero':'chip-cliente'); }
+role.addEventListener('change', refreshBadge); refreshBadge();
+
+/* ======= listar ======= */
+function renderUsers(){
+  const users = loadUsers();
+  tb.innerHTML = users.map((u,i)=>`
+    <tr>
+      <td class="mono">${i+1}</td>
+      <td>${u.nombre}</td>
+      <td class="mono">${u.correo}</td>
+      <td>${badgeFor(u.rol)}</td>
+      <td>
+        <select class="form-select form-select-sm selRol" data-id="${u.id}">
+          <option value="cliente" ${u.rol==='cliente'?'selected':''}>cliente</option>
+          <option value="cajero" ${u.rol==='cajero'?'selected':''}>cajero</option>
+          <option value="admin" ${u.rol==='admin'?'selected':''}>admin</option>
+        </select>
+      </td>
+      <td class="text-end">
+        <button class="btn btn-sm btn-primary btnCambiar" data-id="${u.id}">Cambiar rol</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+/* ======= eventos ======= */
+document.getElementById('btnEntrar').addEventListener('click', ()=>{
+  if (role.value!=='admin'){
+    new bootstrap.Modal(document.getElementById('modalAuth')).show(); // Escenario 2
+    hide(mantenedor);
+  } else {
+    show(mantenedor);
+    renderUsers();
+  }
+});
+
+document.getElementById('btnCrear').addEventListener('click', ()=>{
+  if (role.value!=='admin'){ // control de acceso también al crear
+    new bootstrap.Modal(document.getElementById('modalAuth')).show(); // Escenario 2
+    return;
+  }
+  const nombre = document.getElementById('uNombre').value.trim();
+  const correo = (document.getElementById('uCorreo').value || '').trim();
+  const rol = document.getElementById('uRol').value;
+
+  const val = validarEmailAPI(correo);
+  if(!val.ok){
+    document.getElementById('msgMail').textContent = val.motivo;      // Escenario 1
+    new bootstrap.Modal(document.getElementById('modalMail')).show();
+    return;
+  }
+  if(!nombre){ document.getElementById('msgMail').textContent='El nombre es obligatorio.'; new bootstrap.Modal(document.getElementById('modalMail')).show(); return; }
+
+  const list = loadUsers();
+  const id = (list.at(-1)?.id || 0) + 1;
+  list.push({id, nombre, correo, rol});
+  saveUsers(list);
+  renderUsers();
+  document.getElementById('uNombre').value='';
+  document.getElementById('uCorreo').value='';
+  document.getElementById('uRol').value='cliente';
+});
+
+let tmpCambio = {id:null, nuevoRol:null};
+document.addEventListener('click', (e)=>{
+  if(e.target.classList.contains('btnCambiar')){
+    if (role.value!=='admin'){ new bootstrap.Modal(document.getElementById('modalAuth')).show(); return; } // Escenario 2
+    const id = Number(e.target.dataset.id);
+    const sel = document.querySelector(`.selRol[data-id="${id}"]`);
+    tmpCambio = {id, nuevoRol: sel.value};
+    document.getElementById('mUser').textContent = loadUsers().find(u=>u.id===id).correo;
+    document.getElementById('mRol').textContent = sel.value;
+    new bootstrap.Modal(document.getElementById('modalRol')).show();   // Escenario 3 (confirmación)
+  }
+});
+
+document.getElementById('btnConfirmRol').addEventListener('click', ()=>{
+  const list = loadUsers();
+  const idx = list.findIndex(u=>u.id===tmpCambio.id);
+  if(idx>=0){ list[idx].rol = tmpCambio.nuevoRol; saveUsers(list); renderUsers(); }
+  bootstrap.Modal.getInstance(document.getElementById('modalRol')).hide();
+});
+</script>
+</body>
+</html>

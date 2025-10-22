@@ -1,26 +1,361 @@
-<!DOCTYPE html><html lang="es"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>B16 – Anulación pedido</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</head><body><div class="container">
+<style>
+  .table td,.table th{vertical-align:middle}
+  .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+  .chip{padding:.2rem .55rem;border-radius:999px;font-size:.78rem}
+  .chip-ok{background:#e6f4ea;color:#137333;border:1px solid #c6eccf}
+  .chip-err{background:#fdecea;color:#b00020;border:1px solid #f5c2c7}
+  .chip-warn{background:#fff4e5;color:#8a5300;border:1px solid #ffe0b3}
+</style>
+</head>
+<body class="bg-light">
+<div class="container py-4">
 
-  <!-- F1: Gherkin (éxito, sin permiso, pedido inexistente) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Gherkin --></div></div>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">❌ Anulación de pedido</h3>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-secondary btn-sm" href="B13pedidoconfirmar.html">Confirmación</a>
+      <a class="btn btn-outline-secondary btn-sm" href="B14pago.html">Pago</a>
+      <a class="btn btn-outline-secondary btn-sm" href="B15boleta.html">Boleta</a>
+    </div>
+  </div>
 
-  <!-- F2: Panel pedido del cliente (botón “Anular pedido”) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- pedido + botón --></div></div>
+  <!-- Panel de búsqueda/usuario -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">Buscar pedido por ID</label>
+          <div class="input-group">
+            <input id="inpId" type="text" class="form-control" placeholder="Ej: 1729012334455">
+            <button id="btnBuscar" class="btn btn-outline-secondary">Buscar</button>
+          </div>
+          <div class="form-text">Si lo dejas vacío, se toma el pedido más reciente.</div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Usuario</label>
+          <input id="inpUsuario" type="email" class="form-control" placeholder="usuario@elmariachi.cl" value="soporte@elmariachi.cl">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Rol</label>
+          <select id="selRol" class="form-select">
+            <option value="cliente">Cliente</option>
+            <option value="soporte" selected>Soporte</option>
+            <option value="admin">Admin</option>
+          </select>
+          <div class="form-text">Solo Soporte/Admin pueden anular.</div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Motivo</label>
+          <input id="inpMotivo" type="text" class="form-control" placeholder="Ej. Duplicado de pedido">
+        </div>
+      </div>
+    </div>
+  </div>
 
-  <!-- F3: Éxito de anulación -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- Modal ✔ OK --></div></div>
+  <!-- pedido + botón -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">🧾 Pedido</h5>
+        <div>
+          <button id="btnAnular" class="btn btn-danger">Anular pedido</button>
+        </div>
+      </div>
+      <hr>
+      <div id="infoPedido" class="text-muted">No hay pedido cargado.</div>
+      <div class="table-responsive mt-3">
+        <table class="table">
+          <thead class="table-light">
+            <tr>
+              <th>Producto</th>
+              <th class="text-center">Cant.</th>
+              <th class="text-end">P. Unitario</th>
+              <th class="text-end">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+          <tfoot id="tfoot"></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
 
-  <!-- F4: Error por permisos -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- Modal ✖ OK --></div></div>
+  <!-- Bitácora de anulaciones -->
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0">📚 Bitácora de anulaciones</h5>
+        <button id="btnBorrar" class="btn btn-outline-danger btn-sm">Borrar bitácora</button>
+      </div>
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th>Pedido</th>
+              <th>Usuario</th>
+              <th>Fecha</th>
+              <th>Motivo</th>
+              <th>Resultado</th>
+              <th>Stock revertido</th>
+              <th>Mensaje</th>
+            </tr>
+          </thead>
+          <tbody id="tbLog"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
-  <!-- F5: Error por pedido no encontrado -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- Modal ? Reintentar --></div></div>
+  <!-- MODALS -->
+  <!-- Éxito -->
+  <div class="modal fade" id="modalOk" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title">Anulación registrada</h5>
+          <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>El pedido <strong id="okPid"></strong> fue anulado correctamente.</p>
+          <p class="mb-0"><span class="chip chip-ok">Stock revertido</span></p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-success" data-bs-dismiss="modal">Aceptar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Sin permiso -->
+  <div class="modal fade" id="modalPerm" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-warning">
+          <h5 class="modal-title">Operación no permitida</h5>
+          <button class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>Tu rol no tiene privilegios para anular pedidos.</p>
+          <p class="mb-0"><span class="chip chip-warn">Requiere rol Soporte o Admin</span></p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- No encontrado -->
+  <div class="modal fade" id="modalNF" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title">Pedido no encontrado</h5>
+          <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>No existe un pedido con ese identificador.</p>
+          <p class="mb-0"><span class="chip chip-err">Verifica el ID e intenta nuevamente</span></p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  <!-- F6: Clase "Anulacion" (idAnulacion, idPedido, usuario, fechaAnulacion, motivo, resultado, mensajeError?, stockRevertido) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Clase Anulacion --></div></div>
+</div>
 
-</div></body></html>
+<script>
+/* ====== Claves de almacenamiento ====== */
+const KEY_PEDIDOS = 'pedidos_hist_b13'; // de B13
+const KEY_INV = 'inventario_b13';       // stock
+const KEY_LOG = 'anulaciones_b16';      // bitácora
+
+/* ====== Helpers ====== */
+const fmt = (n)=>'$'+Number(n||0).toLocaleString('es-CL');
+const nowIso = ()=>new Date().toISOString();
+
+function loadPedidos(){ return JSON.parse(localStorage.getItem(KEY_PEDIDOS) || '[]'); }
+function savePedidos(v){ localStorage.setItem(KEY_PEDIDOS, JSON.stringify(v)); }
+function loadInv(){ return JSON.parse(localStorage.getItem(KEY_INV) || '{}'); }
+function saveInv(i){ localStorage.setItem(KEY_INV, JSON.stringify(i)); }
+function loadLog(){ return JSON.parse(localStorage.getItem(KEY_LOG) || '[]'); }
+function saveLog(v){ localStorage.setItem(KEY_LOG, JSON.stringify(v)); }
+
+/* ====== Estado ====== */
+const state = {
+  pedido: null
+};
+
+/* ====== Render pedido ====== */
+function renderPedido(){
+  const info = document.getElementById('infoPedido');
+  const tb = document.getElementById('tbody');
+  const tf = document.getElementById('tfoot');
+
+  if (!state.pedido){
+    info.textContent = 'No hay pedido cargado.';
+    tb.innerHTML = ''; tf.innerHTML = '';
+    return;
+  }
+
+  const p = state.pedido;
+  info.innerHTML = `
+    <div class="row">
+      <div class="col-md-6">
+        <div><strong>ID:</strong> <span class="mono">#${p.id}</span></div>
+        <div><strong>Fecha:</strong> <span class="mono">${p.fecha}</span></div>
+      </div>
+      <div class="col-md-6">
+        <div><strong>Cliente:</strong> ${p.cliente || 'cliente@elmariachi.cl'}</div>
+        <div><strong>Estado:</strong> <span class="chip ${p.estado==='ANULADO'?'chip-err':'chip-ok'}">${p.estado||'GENERADO'}</span></div>
+      </div>
+    </div>`;
+
+  tb.innerHTML = (p.detalles||[]).map(d=>`
+    <tr>
+      <td>${d.nombreProducto}</td>
+      <td class="text-center">${d.cantidad}</td>
+      <td class="text-end">${fmt(d.precioUnitario)}</td>
+      <td class="text-end">${fmt(d.subtotal)}</td>
+    </tr>
+  `).join('');
+
+  const total = (p.detalles||[]).reduce((a,d)=>a+d.subtotal,0);
+  tf.innerHTML = `<tr><th colspan="3" class="text-end">Total</th><th class="text-end">${fmt(total)}</th></tr>`;
+}
+
+/* ====== Render bitácora ====== */
+function renderLog(){
+  const rows = loadLog().map((r,i)=>`
+    <tr>
+      <td class="mono">${i+1}</td>
+      <td class="mono">#${r.idPedido}</td>
+      <td>${r.usuario}</td>
+      <td class="mono">${r.fechaAnulacion}</td>
+      <td>${r.motivo||'-'}</td>
+      <td>${r.resultado==='OK'
+            ? '<span class="chip chip-ok">OK</span>'
+            : '<span class="chip chip-err">ERROR</span>'}</td>
+      <td>${r.stockRevertido?'<span class="chip chip-ok">Sí</span>':'<span class="chip chip-err">No</span>'}</td>
+      <td>${r.mensajeError||'-'}</td>
+    </tr>
+  `).join('');
+  document.getElementById('tbLog').innerHTML = rows || `<tr><td colspan="8" class="text-center text-muted">Sin registros.</td></tr>`;
+}
+
+/* ====== Cargar pedido (por ID o último) ====== */
+function cargarPedidoPorId(idBuscado){
+  const pedidos = loadPedidos();
+  let p = null;
+  if (idBuscado){
+    p = pedidos.find(x => String(x.id) === String(idBuscado));
+  } else {
+    p = pedidos[0] || null; // más reciente
+  }
+  state.pedido = p || null;
+  renderPedido();
+  if (!p){ new bootstrap.Modal(document.getElementById('modalNF')).show(); }
+}
+
+/* ====== Anular pedido ====== */
+function anularPedido(){
+  const rol = document.getElementById('selRol').value;
+  if (rol!=='soporte' && rol!=='admin'){
+    // usuario sin permisos
+    registrarIntento(null, 'sin-permiso', false, 'Usuario sin privilegios');
+    new bootstrap.Modal(document.getElementById('modalPerm')).show();
+    return;
+  }
+  if (!state.pedido){
+    registrarIntento(null, 'id-invalido', false, 'Pedido no encontrado');
+    new bootstrap.Modal(document.getElementById('modalNF')).show();
+    return;
+  }
+  const motivo = document.getElementById('inpMotivo').value.trim();
+  const usuario = document.getElementById('inpUsuario').value.trim() || 'soporte@elmariachi.cl';
+
+  // marcar ANULADO y revertir stock
+  const pedidos = loadPedidos();
+  const idx = pedidos.findIndex(x => x.id === state.pedido.id);
+  if (idx<0){
+    registrarIntento(state.pedido.id, motivo, false, 'Pedido no encontrado al guardar');
+    new bootstrap.Modal(document.getElementById('modalNF')).show();
+    return;
+  }
+
+  // revertir stock
+  const inv = loadInv();
+  (state.pedido.detalles||[]).forEach(d=>{
+    inv[d.idProducto] = (inv[d.idProducto]||0) + d.cantidad;
+  });
+  saveInv(inv);
+
+  // cambiar estado y guardar
+  pedidos[idx].estado = 'ANULADO';
+  savePedidos(pedidos);
+
+  // registrar
+  const reg = {
+    idAnulacion: Date.now(),
+    idPedido: state.pedido.id,
+    usuario,
+    fechaAnulacion: nowIso(),
+    motivo,
+    resultado: 'OK',
+    mensajeError: '',
+    stockRevertido: true
+  };
+  const log = loadLog(); log.unshift(reg); saveLog(log);
+
+  // feedback
+  document.getElementById('okPid').textContent = '#'+state.pedido.id;
+  new bootstrap.Modal(document.getElementById('modalOk')).show();
+
+  // refrescar
+  cargarPedidoPorId(state.pedido.id);
+  renderLog();
+}
+
+/* ====== Registrar intento fallido (permiso o inexistente) ====== */
+function registrarIntento(idPedido, motivo, ok, msg){
+  const reg = {
+    idAnulacion: Date.now(),
+    idPedido: idPedido || '-',
+    usuario: (document.getElementById('inpUsuario').value.trim() || 'cliente@elmariachi.cl'),
+    fechaAnulacion: nowIso(),
+    motivo,
+    resultado: ok?'OK':'ERROR',
+    mensajeError: msg || '',
+    stockRevertido: false
+  };
+  const log = loadLog(); log.unshift(reg); saveLog(log);
+  renderLog();
+}
+
+/* ====== Eventos ====== */
+document.getElementById('btnBuscar').addEventListener('click', ()=>{
+  const id = document.getElementById('inpId').value.trim();
+  cargarPedidoPorId(id || null);
+});
+document.getElementById('btnAnular').addEventListener('click', anularPedido);
+document.getElementById('btnBorrar').addEventListener('click', ()=>{
+  if (!confirm('¿Borrar bitácora de anulaciones?')) return;
+  saveLog([]); renderLog();
+});
+
+/* ====== Init ====== */
+cargarPedidoPorId(null); // último
+renderLog();
+</script>
+</body>
+</html>
+

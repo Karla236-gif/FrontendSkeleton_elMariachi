@@ -1,19 +1,247 @@
-<!DOCTYPE html><html lang="es"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>B09 – Inactivar/Reactivar</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</head><body>
-<div class="container">
-  <!-- F1: Gherkin (inactivación, reactivación, auditoría) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Gherkin --></div></div>
-  <!-- F2: Modal inactivar (detalle + confirmar) -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- modal inactivar --></div></div>
-  <!-- F3: Modal reactivar (detalle + confirmar) -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- modal reactivar --></div></div>
-  <!-- F4: Auditoría de acción (usuario/hora/fecha) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- registro acción --></div></div>
-  <!-- F5: Clase "Productos" (activo, fechaInactivacion?, usuarioAccion, timestampAccion) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Clase Productos --></div></div>
+<style>
+  .status-dot{width:.6rem;height:.6rem;border-radius:999px;display:inline-block;margin-right:.4rem}
+  .dot-on{background:#22c55e}.dot-off{background:#ef4444}
+  .table td, .table th { vertical-align: middle; }
+</style>
+</head>
+<body class="bg-light">
+<div class="container py-4">
+
+  <!-- F1: Gherkin -->
+  <div class="mb-3">
+    <h5><strong>Escenarios (Gherkin):</strong></h5>
+    <ul class="mb-0">
+      <li><b>Escenario 1: Inactivación</b> — Dado un producto activo, cuando el administrador confirma “inactivar”, entonces el producto queda inactivo y no aparece en el catálogo público.</li>
+      <li><b>Escenario 2: Reactivación</b> — Dado un producto inactivo, cuando el administrador confirma “reactivar”, entonces el producto vuelve a estar disponible en el catálogo.</li>
+      <li><b>Escenario 3: Auditoría</b> — Dado que un administrador cambia el estado, cuando finaliza la operación, entonces se registra usuario y timestamp de la acción.</li>
+    </ul>
+  </div>
+
+  <!-- Lista de productos -->
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">Gestión de estado</h4>
+        <div class="input-group" style="max-width:380px">
+          <span class="input-group-text">Filtro</span>
+          <select id="filtro" class="form-select">
+            <option value="todos">Todos</option>
+            <option value="activos" selected>Activos</option>
+            <option value="inactivos">Inactivos</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle" id="tabla">
+          <thead class="table-light">
+            <tr>
+              <th>ID</th>
+              <th>Producto</th>
+              <th>Categoría</th>
+              <th>Precio</th>
+              <th>Estado</th>
+              <th class="text-end">Acción</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- F4: Panel Auditoría -->
+  <div class="card mt-4">
+    <div class="card-body">
+      <h5 class="mb-3">🧾 Auditoría de acciones</h5>
+      <ul id="auditList" class="list-group list-group-flush"></ul>
+    </div>
+  </div>
+
+  <!-- F2: Modal INACTIVAR -->
+  <div class="modal fade" id="modalInactivar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title">Inactivar producto</h5>
+          <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>¿Estás seguro de <strong>inactivar</strong> el producto <span id="mInacNombre" class="fw-bold"></span> (ID <span id="mInacId"></span>)?</p>
+          <p class="text-muted small">No se mostrará en el catálogo público mientras esté inactivo.</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button id="btnConfirmInactivar" class="btn btn-danger">Inactivar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- F3: Modal REACTIVAR -->
+  <div class="modal fade" id="modalReactivar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title">Reactivar producto</h5>
+          <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>¿Confirmas <strong>reactivar</strong> el producto <span id="mReactNombre" class="fw-bold"></span> (ID <span id="mReactId"></span>)?</p>
+          <p class="text-muted small">Volverá a estar disponible en el catálogo.</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button id="btnConfirmReactivar" class="btn btn-success">Reactivar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- F5: Clase Producto -->
+  <div class="mt-4">
+    <h6>Clase <code>Producto</code> (mock para B09):</h6>
+<pre class="bg-white p-3 border rounded"><code>Producto {
+  idProducto: Integer
+  nombre: String
+  categoria: String
+  precio: Float
+  activo: Boolean
+  fechaInactivacion: DateTime?     // null si está activo
+  usuarioAccion: String            // último usuario que cambió estado
+  timestampAccion: DateTime        // última acción (inactivar/reactivar)
+}</code></pre>
+  </div>
 </div>
-</body></html>
+
+<script>
+  // ====== Datos base / helpers ======
+  const ADMIN_USER = "admin@elmariachi.cl";
+  const KEY = "productos_mock_b09";
+  const AUDIT_KEY = "audit_b09";
+
+  // Semilla si no hay datos
+  (function seed(){
+    if (localStorage.getItem(KEY)) return;
+    const base = [
+      {idProducto:1, nombre:"Tacos al Pastor", categoria:"tacos", precio:4990, activo:true,  fechaInactivacion:null, usuarioAccion:"", timestampAccion:null},
+      {idProducto:2, nombre:"Burrito Especial", categoria:"burritos", precio:6490, activo:true,  fechaInactivacion:null, usuarioAccion:"", timestampAccion:null},
+      {idProducto:3, nombre:"Combo Fiesta",   categoria:"combos",  precio:10990, activo:false, fechaInactivacion:new Date().toISOString(), usuarioAccion:"admin@seed", timestampAccion:new Date().toISOString()},
+    ];
+    localStorage.setItem(KEY, JSON.stringify(base));
+    localStorage.setItem(AUDIT_KEY, JSON.stringify([]));
+  })();
+
+  const $tbody = document.getElementById("tbody");
+  const $filtro = document.getElementById("filtro");
+  const $auditList = document.getElementById("auditList");
+
+  function loadAll(){ return JSON.parse(localStorage.getItem(KEY) || "[]"); }
+  function saveAll(arr){ localStorage.setItem(KEY, JSON.stringify(arr)); }
+  function pushAudit(entry){
+    const list = JSON.parse(localStorage.getItem(AUDIT_KEY) || "[]");
+    list.unshift(entry);
+    localStorage.setItem(AUDIT_KEY, JSON.stringify(list));
+    renderAudit();
+  }
+  function renderAudit(){
+    const list = JSON.parse(localStorage.getItem(AUDIT_KEY) || "[]");
+    $auditList.innerHTML = list.length ? list.map(a => `
+      <li class="list-group-item d-flex justify-content-between">
+        <span>[${a.accion}] ID ${a.idProducto} – ${a.nombre}</span>
+        <small class="text-muted">${a.usuario} – ${new Date(a.timestamp).toLocaleString()}</small>
+      </li>
+    `).join("") : `<li class="list-group-item text-muted">Sin registros aún.</li>`;
+  }
+
+  function render(){
+    const data = loadAll();
+    const fil = $filtro.value;
+    const filtrados = data.filter(p => fil === "todos" ? true : (fil === "activos" ? p.activo : !p.activo));
+    $tbody.innerHTML = filtrados.map(p => `
+      <tr>
+        <td>${p.idProducto}</td>
+        <td>${p.nombre}</td>
+        <td><span class="badge bg-secondary text-uppercase">${p.categoria}</span></td>
+        <td>$${p.precio}</td>
+        <td>
+          ${p.activo
+            ? `<span class="status-dot dot-on"></span>Activo`
+            : `<span class="status-dot dot-off"></span>Inactivo`}
+        </td>
+        <td class="text-end">
+          ${p.activo
+            ? `<button class="btn btn-outline-danger btn-sm" data-action="inactivar" data-id="${p.idProducto}" data-nombre="${p.nombre}">Inactivar</button>`
+            : `<button class="btn btn-outline-success btn-sm" data-action="reactivar" data-id="${p.idProducto}" data-nombre="${p.nombre}">Reactivar</button>`
+          }
+        </td>
+      </tr>
+    `).join("");
+  }
+
+  // Eventos tabla (delegación)
+  $tbody.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-action]");
+    if (!btn) return;
+    const id = parseInt(btn.dataset.id, 10);
+    const nombre = btn.dataset.nombre;
+    if (btn.dataset.action === "inactivar") {
+      // abre modal inactivar
+      document.getElementById("mInacId").textContent = id;
+      document.getElementById("mInacNombre").textContent = nombre;
+      new bootstrap.Modal(document.getElementById("modalInactivar")).show();
+
+      document.getElementById("btnConfirmInactivar").onclick = () => {
+        const arr = loadAll();
+        const i = arr.findIndex(p => p.idProducto === id);
+        if (i >= 0) {
+          arr[i].activo = false;
+          arr[i].fechaInactivacion = new Date().toISOString();
+          arr[i].usuarioAccion = ADMIN_USER;
+          arr[i].timestampAccion = new Date().toISOString();
+          saveAll(arr);
+          pushAudit({accion:"INACTIVAR", idProducto:id, nombre, usuario:ADMIN_USER, timestamp:arr[i].timestampAccion});
+          bootstrap.Modal.getInstance(document.getElementById("modalInactivar")).hide();
+          render();
+        }
+      };
+    } else {
+      // abre modal reactivar
+      document.getElementById("mReactId").textContent = id;
+      document.getElementById("mReactNombre").textContent = nombre;
+      new bootstrap.Modal(document.getElementById("modalReactivar")).show();
+
+      document.getElementById("btnConfirmReactivar").onclick = () => {
+        const arr = loadAll();
+        const i = arr.findIndex(p => p.idProducto === id);
+        if (i >= 0) {
+          arr[i].activo = true;
+          arr[i].fechaInactivacion = null;
+          arr[i].usuarioAccion = ADMIN_USER;
+          arr[i].timestampAccion = new Date().toISOString();
+          saveAll(arr);
+          pushAudit({accion:"REACTIVAR", idProducto:id, nombre, usuario:ADMIN_USER, timestamp:arr[i].timestampAccion});
+          bootstrap.Modal.getInstance(document.getElementById("modalReactivar")).hide();
+          render();
+        }
+      };
+    }
+  });
+
+  $filtro.addEventListener("change", render);
+
+  // Init
+  render();
+  renderAudit();
+</script>
+</body>
+</html>
+

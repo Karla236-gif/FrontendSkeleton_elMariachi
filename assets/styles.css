@@ -17,3 +17,15 @@ body {
   border-top-left-radius: 1rem;
   border-top-right-radius: 1rem;
 }
+
+/* --- Carrusel: indicadores personalizados --- */
+.carousel .carousel-indicators [data-bs-target] {
+  background: rgba(255, 255, 255, 0.4);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.carousel .carousel-indicators .active {
+  background: #fff;
+}

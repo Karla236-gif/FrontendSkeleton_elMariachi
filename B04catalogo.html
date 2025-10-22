@@ -1,111 +1,122 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>B04 · Catálogo – El Mariachi</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>B04 – Catálogo</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<style>
+  .card img{height:180px;object-fit:cover}
+  .qty{width:96px}
+  .filter .btn{min-width:110px}
+</style>
 </head>
 <body class="bg-light">
+<div class="container py-4">
 
-<!-- Navbar -->
-<nav class="navbar navbar-expand-lg bg-dark navbar-dark">
-  <div class="container">
-    <a class="navbar-brand" href="index.html">El Mariachi</a>
-    <div class="navbar-nav">
-      <a class="nav-link active" href="B04catalogo.html">Catálogo</a>
-      <a class="nav-link" href="B05busqueda.html">Búsqueda</a>
-      <a class="nav-link" href="B01registro.html">Registro</a>
-      <a class="nav-link" href="B02login.html">Login</a>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">🍽️ Catálogo</h3>
+    <a class="btn btn-success" href="B11_pedido_detalle.html">Ver pedido</a>
+  </div>
+
+  <!-- Búsqueda y filtros -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="row g-2 align-items-center">
+        <div class="col-md-6">
+          <input id="q" class="form-control" placeholder="Escribe Tacos, Burritos o Combos...">
+        </div>
+        <div class="col-md-6 text-md-end">
+          <div class="btn-group filter" role="group">
+            <button class="btn btn-outline-primary" data-cat="tacos">🌮 Tacos</button>
+            <button class="btn btn-outline-success" data-cat="burritos">🌯 Burritos</button>
+            <button class="btn btn-outline-warning" data-cat="combos">🍱 Combos</button>
+            <button class="btn btn-outline-secondary" data-cat="">Todos</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
-</nav>
 
-<!-- Main -->
-<main class="container py-5">
-  <h1 class="mb-4 text-center fw-bold">🌮 Nuestro Catálogo</h1>
-  <div class="row g-4">
+  <!-- Grilla -->
+  <div class="row g-3" id="grid"></div>
 
-    <!-- Tarjeta 1 -->
-    <div class="col-md-4">
-      <div class="card h-100 shadow-sm">
-        <img src="assets/ImagenesMariachi/tacos1.jpg" class="card-img-top" alt="Tacos al Pastor">
-        <div class="card-body">
-          <h5 class="card-title">Tacos al Pastor</h5>
-          <p class="card-text">Deliciosos tacos tradicionales con piña y salsa verde.</p>
-          <button class="btn btn-primary w-100">Agregar al carrito</button>
+</div>
+
+<script>
+  // Catálogo mock
+  const CATALOGO = [
+    {id:1, nombre:'Tacos al Pastor', cat:'tacos', desc:'Carne marinada con piña', precio:4990, img:'assets/ImagenesMariachi/tacos1.jpg', stock:10},
+    {id:2, nombre:'Burrito Especial', cat:'burritos', desc:'Carne, frijoles y guacamole', precio:6490, img:'assets/ImagenesMariachi/burrito1.jpg', stock:7},
+    {id:3, nombre:'Combo Fiesta',   cat:'combos',  desc:'Para compartir', precio:10990, img:'assets/ImagenesMariachi/combo4.jpeg', stock:5},
+    {id:4, nombre:'Tacos Supremos', cat:'tacos', desc:'Con queso y salsa', precio:5990, img:'assets/ImagenesMariachi/tacos3.jpg', stock:9}
+  ];
+
+  const grid = document.getElementById('grid');
+  const q = document.getElementById('q');
+  let filtroCat = '';
+
+  function pintar(lista){
+    grid.innerHTML = lista.map(p => `
+      <div class="col-sm-6 col-md-4 col-lg-3">
+        <div class="card h-100 shadow-sm">
+          <img src="${p.img}" class="card-img-top" alt="${p.nombre}">
+          <div class="card-body d-flex flex-column">
+            <div class="d-flex justify-content-between align-items-start">
+              <h6 class="mb-0">${p.nombre}</h6>
+              <span class="badge bg-secondary text-uppercase">${p.cat}</span>
+            </div>
+            <p class="text-muted small flex-grow-1 mb-2">${p.desc}</p>
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="h6 text-success mb-0">$${p.precio}</span>
+              <div class="input-group input-group-sm qty" data-id="${p.id}">
+                <button class="btn btn-outline-secondary btn-minus" type="button">−</button>
+                <input class="form-control text-center qty-input" value="1" min="1" type="number">
+                <button class="btn btn-outline-secondary btn-plus" type="button">+</button>
+              </div>
+            </div>
+            <a class="btn btn-primary btn-sm mt-3 btn-add" data-id="${p.id}">Agregar al pedido</a>
+          </div>
         </div>
       </div>
-    </div>
+    `).join('');
+  }
 
-    <!-- Tarjeta 2 -->
-    <div class="col-md-4">
-      <div class="card h-100 shadow-sm">
-        <img src="assets/ImagenesMariachi/combo1.jpg" class="card-img-top" alt="Combo 1">
-        <div class="card-body">
-          <h5 class="card-title">Combo 1</h5>
-          <p class="card-text">Incluye tacos, burrito y bebida a elección.</p>
-          <button class="btn btn-primary w-100">Agregar al carrito</button>
-        </div>
-      </div>
-    </div>
+  function aplicarFiltros(){
+    const texto = q.value.trim().toLowerCase();
+    const data = CATALOGO.filter(p => {
+      const okTxt = !texto || p.nombre.toLowerCase().includes(texto) || p.desc.toLowerCase().includes(texto);
+      const okCat = !filtroCat || p.cat === filtroCat;
+      return okTxt && okCat;
+    });
+    pintar(data);
+  }
 
-    <!-- Tarjeta 3 -->
-    <div class="col-md-4">
-      <div class="card h-100 shadow-sm">
-        <img src="assets/ImagenesMariachi/burrito1.jpg" class="card-img-top" alt="Burrito">
-        <div class="card-body">
-          <h5 class="card-title">Burrito</h5>
-          <p class="card-text">Relleno de carne, porotos y queso fundido.</p>
-          <button class="btn btn-primary w-100">Agregar al carrito</button>
-        </div>
-      </div>
-    </div>
+  // Buscar y filtrar
+  q.addEventListener('input', aplicarFiltros);
+  document.querySelectorAll('.filter .btn').forEach(b=>{
+    b.addEventListener('click', ()=>{ filtroCat = b.dataset.cat; aplicarFiltros(); });
+  });
 
-    <!-- Tarjeta 4 -->
-    <div class="col-md-4">
-      <div class="card h-100 shadow-sm">
-        <img src="assets/ImagenesMariachi/combo2a.jpg" class="card-img-top" alt="Combo 2">
-        <div class="card-body">
-          <h5 class="card-title">Combo 2</h5>
-          <p class="card-text">Dos burritos y bebida. Ideal para compartir.</p>
-          <button class="btn btn-primary w-100">Agregar al carrito</button>
-        </div>
-      </div>
-    </div>
+  // Controles de cantidad
+  grid.addEventListener('click', (e)=>{
+    const box = e.target.closest('.input-group'); if(!box) return;
+    const input = box.querySelector('.qty-input');
+    if (e.target.classList.contains('btn-minus')) input.value = Math.max(1, parseInt(input.value||1,10)-1);
+    if (e.target.classList.contains('btn-plus'))  input.value = parseInt(input.value||1,10)+1;
+  });
 
-    <!-- Tarjeta 5 -->
-    <div class="col-md-4">
-      <div class="card h-100 shadow-sm">
-        <img src="assets/ImagenesMariachi/tacos2.jpg" class="card-img-top" alt="Tacos Mixtos">
-        <div class="card-body">
-          <h5 class="card-title">Tacos Mixtos</h5>
-          <p class="card-text">Tres tacos surtidos con diferentes carnes y salsas.</p>
-          <button class="btn btn-primary w-100">Agregar al carrito</button>
-        </div>
-      </div>
-    </div>
+  // Enviar a B11 con ?add & ?qty
+  grid.addEventListener('click', (e)=>{
+    const btn = e.target.closest('.btn-add'); if(!btn) return;
+    const id = btn.dataset.id;
+    const qty = btn.parentElement.querySelector('.qty-input').value || 1;
+    location.href = `B11_pedido_detalle.html?add=${id}&qty=${qty}`;
+  });
 
-    <!-- Tarjeta 6 -->
-    <div class="col-md-4">
-      <div class="card h-100 shadow-sm">
-        <img src="assets/ImagenesMariachi/combo3.webp" class="card-img-top" alt="Combo 3">
-        <div class="card-body">
-          <h5 class="card-title">Combo 3</h5>
-          <p class="card-text">Tacos, nachos y bebida refrescante.</p>
-          <button class="btn btn-primary w-100">Agregar al carrito</button>
-        </div>
-      </div>
-    </div>
-
-  </div>
-</main>
-
-<footer class="text-center py-4 mt-5 bg-dark text-white">
-  <p class="m-0">© 2025 El Mariachi – Todos los derechos reservados.</p>
-</footer>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  // Init
+  aplicarFiltros();
+</script>
 </body>
 </html>
-

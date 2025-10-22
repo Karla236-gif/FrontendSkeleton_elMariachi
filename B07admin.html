@@ -1,21 +1,277 @@
-<!DOCTYPE html><html lang="es"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>B07 – Alta producto</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</head><body>
-<div class="container">
-  <!-- F1: Gherkin (alta, precio inválido, imagen opcional) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Gherkin --></div></div>
-  <!-- F2: Form alta (nombre, precio, categoría, imagen?) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- form alta --></div></div>
-  <!-- F3: Éxito (producto creado) -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- ✔ OK --></div></div>
-  <!-- F4: Error (precio negativo) -->
-  <div class="row"><div class="col-12 d-flex justify-content-center"><!-- ✖ OK --></div></div>
-  <!-- F5: Vista sin imagen (opcional) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- placeholder imagen --></div></div>
-  <!-- F6: Clase "Producto" (campos base + activo por defecto true) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Clase Producto --></div></div>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>B07 – Alta producto</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <style>
+    .preview {
+      width: 220px; height: 160px; object-fit: cover; border-radius: .5rem; border: 2px dashed #ccc;
+      background: #f8f9fa;
+    }
+    .strike { text-decoration: line-through; opacity:.7 }
+  </style>
+</head>
+<body class="bg-light">
+<div class="container py-4">
+
+  <!-- F1: Gherkin -->
+  <div class="mb-3">
+    <h5><strong>Escenarios (Gherkin):</strong></h5>
+    <ul class="mb-0">
+      <li><b>Alta correcta:</b> Dado que el admin completa nombre, precio y categoría, cuando envía el formulario, entonces el sistema registra el producto y muestra “Producto creado”.</li>
+      <li><b>Precio inválido:</b> Dado que el admin ingresa un precio ≤ 0, cuando intenta guardar, entonces el sistema muestra “Precio inválido” y no permite crear.</li>
+      <li><b>Imagen opcional:</b> Dado que el admin no adjunta imagen, cuando guarda, entonces el sistema crea el producto usando un <i>placeholder</i>.</li>
+    </ul>
+  </div>
+
+  <!-- F2: Form alta -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <h4 class="mb-3">➕ Alta de producto</h4>
+
+      <form id="formProducto" novalidate>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Nombre *</label>
+            <input type="text" id="nombre" class="form-control" required placeholder="Ej: Tacos al Pastor">
+            <div class="invalid-feedback">Ingresa un nombre.</div>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Precio (CLP) *</label>
+            <input type="number" id="precio" class="form-control" required min="1" step="1" placeholder="4990">
+            <div class="invalid-feedback">Precio debe ser mayor a 0.</div>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Categoría *</label>
+            <select id="categoria" class="form-select" required>
+              <option value="">Selecciona…</option>
+              <option value="tacos">Tacos</option>
+              <option value="burritos">Burritos</option>
+              <option value="combos">Combos</option>
+              <option value="bebidas">Bebidas</option>
+            </select>
+            <div class="invalid-feedback">Selecciona una categoría.</div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Descripción</label>
+            <textarea id="descripcion" class="form-control" rows="3" placeholder="Descripción breve del producto…"></textarea>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Imagen (URL – opcional)</label>
+            <input type="url" id="imagenUrl" class="form-control" placeholder="https://…/tacos.jpg">
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Imagen (archivo – opcional)</label>
+            <input type="file" id="imagenFile" class="form-control" accept="image/*">
+          </div>
+
+          <div class="col-12 d-flex align-items-center gap-3">
+            <img id="preview" class="preview" alt="Preview">
+            <span class="text-muted">Si no subes imagen, se usará un placeholder.</span>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Stock inicial</label>
+            <input type="number" id="stock" class="form-control" min="0" step="1" value="0">
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Precio promocional (opcional)</label>
+            <input type="number" id="precioPromo" class="form-control" min="0" step="1" placeholder="Ej: 3990">
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Etiqueta descuento</label>
+            <input type="text" id="etiqueta" class="form-control" placeholder="-20%">
+          </div>
+
+          <div class="col-md-3 d-flex align-items-end">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="promocionActiva">
+              <label class="form-check-label" for="promocionActiva">Promoción activa</label>
+            </div>
+          </div>
+
+          <div class="col-12">
+            <button class="btn btn-success" type="submit">Guardar</button>
+            <button class="btn btn-outline-secondary" type="reset" id="btnReset">Limpiar</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- F3/F4: Mensajes -->
+  <div id="msgOk" class="alert alert-success d-none">✔ Producto creado correctamente.</div>
+  <div id="msgErr" class="alert alert-danger d-none">✖ Revisa el formulario. El precio debe ser &gt; 0.</div>
+
+  <!-- F5: Vista sin imagen (placeholder) -->
+  <div class="card mt-4">
+    <div class="card-body">
+      <h6 class="mb-2">Vista previa (mock):</h6>
+      <div id="previewCard" class="d-flex gap-3 align-items-center">
+        <img id="previewCardImg" class="preview" alt="Preview">
+        <div>
+          <div id="previewCardNombre" class="fw-bold">—</div>
+          <div><span id="previewCardPrecio" class="text-success">—</span>
+               <span id="previewCardPrecioPromo" class="text-danger fw-bold ms-2"></span></div>
+          <div id="previewCardCat" class="badge bg-secondary">—</div>
+          <div id="previewCardDesc" class="text-muted small mt-1">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- F6: Clase Producto -->
+  <div class="mt-4">
+    <h6>Clase <code>Producto</code> (mock):</h6>
+<pre class="bg-white p-3 border rounded"><code>Producto {
+  idProducto: Integer
+  nombre: String
+  descripcion: String
+  categoria: String
+  precio: Float
+  precioPromocional: Float
+  stock: Integer
+  imagen: String
+  promocionActiva: Boolean
+  etiquetaDescuento: String
+  activo: Boolean = true
+}</code></pre>
+  </div>
+
 </div>
-</body></html>
+
+<script>
+  // === Placeholder por defecto ===
+  const PLACEHOLDER = "https://via.placeholder.com/400x300?text=Sin+imagen";
+  const $prev = document.getElementById('preview');
+  const $prevCardImg = document.getElementById('previewCardImg');
+  $prev.src = PLACEHOLDER;
+  $prevCardImg.src = PLACEHOLDER;
+
+  // === Helpers Preview ===
+  const imagenUrl = document.getElementById('imagenUrl');
+  const imagenFile = document.getElementById('imagenFile');
+
+  function setPreviewFromUrl() {
+    const url = imagenUrl.value.trim();
+    $prev.src = url || PLACEHOLDER;
+    $prevCardImg.src = url || PLACEHOLDER;
+  }
+  imagenUrl.addEventListener('input', setPreviewFromUrl);
+
+  imagenFile.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return setPreviewFromUrl();
+    const reader = new FileReader();
+    reader.onload = () => {
+      $prev.src = reader.result;
+      $prevCardImg.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // === Vista previa textual básica ===
+  const nombre = document.getElementById('nombre');
+  const precio = document.getElementById('precio');
+  const precioPromo = document.getElementById('precioPromo');
+  const categoria = document.getElementById('categoria');
+  const descripcion = document.getElementById('descripcion');
+  const promoActiva = document.getElementById('promocionActiva');
+  const etiqueta = document.getElementById('etiqueta');
+
+  function refreshCard() {
+    document.getElementById('previewCardNombre').textContent = nombre.value || '—';
+    document.getElementById('previewCardCat').textContent = categoria.value || '—';
+    document.getElementById('previewCardDesc').textContent = descripcion.value || '—';
+
+    const p = precio.value ? `$${parseInt(precio.value,10)}` : '—';
+    const pp = (promoActiva.checked && precioPromo.value) ? `$${parseInt(precioPromo.value,10)} ${etiqueta.value||''}` : '';
+
+    document.getElementById('previewCardPrecio').innerHTML = promoActiva.checked && precioPromo.value
+      ? `<span class="strike text-muted">${p}</span>`
+      : p;
+    document.getElementById('previewCardPrecioPromo').textContent = pp;
+  }
+  [nombre, precio, precioPromo, categoria, descripcion, promoActiva, etiqueta].forEach(el => {
+    el.addEventListener('input', refreshCard);
+    el.addEventListener('change', refreshCard);
+  });
+  refreshCard();
+
+  // === Alta simulada + validaciones ===
+  const form = document.getElementById('formProducto');
+  const msgOk = document.getElementById('msgOk');
+  const msgErr = document.getElementById('msgErr');
+  const stock = document.getElementById('stock');
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Validación HTML5
+    form.classList.add('was-validated');
+
+    const price = parseFloat(precio.value || 0);
+    const pricePromo = parseFloat(precioPromo.value || 0);
+
+    // Regla B07: precio > 0
+    if (!form.checkValidity() || price <= 0) {
+      msgErr.classList.remove('d-none');
+      msgOk.classList.add('d-none');
+      return;
+    }
+
+    // Imagen efectiva (file > url > placeholder)
+    let imagenFinal = $prev.src || PLACEHOLDER;
+
+    // Crear objeto Producto (mock)
+    const nuevo = {
+      idProducto: Date.now(),
+      nombre: nombre.value.trim(),
+      descripcion: descripcion.value.trim(),
+      categoria: categoria.value,
+      precio: price,
+      precioPromocional: (promoActiva.checked && pricePromo > 0) ? pricePromo : 0,
+      stock: parseInt(stock.value || 0, 10),
+      imagen: imagenFinal,
+      promocionActiva: promoActiva.checked && pricePromo > 0,
+      etiquetaDescuento: etiqueta.value.trim(),
+      activo: true
+    };
+
+    // (Opcional) Guardar en localStorage para simular persistencia
+    const key = "productos_mock";
+    const lista = JSON.parse(localStorage.getItem(key) || "[]");
+    lista.push(nuevo);
+    localStorage.setItem(key, JSON.stringify(lista));
+
+    // Mensaje OK + reset visual
+    msgErr.classList.add('d-none');
+    msgOk.classList.remove('d-none');
+    form.reset();
+    form.classList.remove('was-validated');
+    $prev.src = PLACEHOLDER; $prevCardImg.src = PLACEHOLDER;
+    refreshCard();
+  });
+
+  document.getElementById('btnReset').addEventListener('click', () => {
+    msgOk.classList.add('d-none');
+    msgErr.classList.add('d-none');
+    $prev.src = PLACEHOLDER; $prevCardImg.src = PLACEHOLDER;
+    form.classList.remove('was-validated');
+    refreshCard();
+  });
+</script>
+</body>
+</html>
+

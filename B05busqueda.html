@@ -1,23 +1,86 @@
-<!DOCTYPE html><html lang="es"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>B05 – Búsqueda/Filtros</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</head><body>
-<div class="container">
-  <!-- F1: Gherkin (texto, categoría, combinación) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Gherkin --></div></div>
-  <!-- F2: Barra de búsqueda -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- input "Tacos/Burritos/Combos..." --></div></div>
-  <!-- F3: Filtros por categoría -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- check/tabs categorías --></div></div>
-  <!-- F4: Resultado “Tacos” (lista simple) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- listado tacos --></div></div>
-  <!-- F5: Resultado “Burritos” -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- listado burritos --></div></div>
-  <!-- F6: Resultado “Combos” -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- listado combos --></div></div>
-  <!-- F7: Clase "Producto" (id, nombre, desc, categoría, precio, stock, imagen) -->
-  <div class="row"><div class="col-12 d-flex justify-content-start"><!-- Clase Producto --></div></div>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>B05 – Búsqueda/Filtros</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body class="bg-light">
+
+<div class="container py-4">
+
+  <h2 class="mb-4 text-center">🌮 Resultados de Búsqueda</h2>
+
+  <!-- Mostrar parámetros recibidos -->
+  <div id="params" class="alert alert-info"></div>
+
+  <!-- Contenedor de resultados -->
+  <div id="resultados" class="row g-4"></div>
+
 </div>
-</body></html>
+
+<script>
+  // === 1. Leer parámetros de búsqueda de la URL ===
+  const params = new URLSearchParams(window.location.search);
+  const q = (params.get('q') || '').toLowerCase();
+  const cat = (params.get('cat') || '').toLowerCase();
+
+  // Mostrar parámetros en pantalla (para depuración)
+  document.getElementById('params').innerHTML =
+    `<strong>Parámetros:</strong> q = "${q}" | cat = "${cat}"`;
+
+  // === 2. Datos de ejemplo (simula el catálogo) ===
+  const PRODUCTOS = [
+    {id:1, nombre:'Tacos al Pastor', categoria:'tacos', precio:4990, img:'assets/ImagenesMariachi/tacos1.jpg'},
+    {id:2, nombre:'Tacos Supremos', categoria:'tacos', precio:5990, img:'assets/ImagenesMariachi/tacos3.jpg'},
+    {id:3, nombre:'Burrito Especial', categoria:'burritos', precio:6490, img:'assets/ImagenesMariachi/burrito1.jpg'},
+    {id:4, nombre:'Combo Fiesta', categoria:'combos', precio:10990, img:'assets/ImagenesMariachi/combo4.jpeg'},
+    {id:5, nombre:'Combo Familiar', categoria:'combos', precio:12990, img:'assets/ImagenesMariachi/combo5.jpeg'},
+  ];
+
+  // === 3. Filtrado por texto y/o categoría ===
+  let filtrados = PRODUCTOS;
+
+  if (q) {
+    filtrados = filtrados.filter(p =>
+      p.nombre.toLowerCase().includes(q)
+    );
+  }
+
+  if (cat) {
+    filtrados = filtrados.filter(p =>
+      p.categoria.toLowerCase() === cat
+    );
+  }
+
+  // === 4. Mostrar resultados ===
+  const cont = document.getElementById('resultados');
+
+  if (filtrados.length === 0) {
+    cont.innerHTML = `
+      <div class="col-12 text-center">
+        <div class="alert alert-warning">😕 No se encontraron resultados para tu búsqueda.</div>
+      </div>
+    `;
+  } else {
+    cont.innerHTML = filtrados.map(p => `
+      <div class="col-sm-6 col-md-4 col-lg-3">
+        <div class="card h-100 shadow-sm">
+          <img src="${p.img}" class="card-img-top" alt="${p.nombre}">
+          <div class="card-body">
+            <h5 class="card-title">${p.nombre}</h5>
+            <span class="badge bg-secondary text-uppercase">${p.categoria}</span>
+            <p class="mt-2 mb-1"><strong>$${p.precio}</strong></p>
+            <a href="B06productodetalle.html?id=${p.id}" class="btn btn-success btn-sm">Ver detalle</a>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+</script>
+
+</body>
+</html>
+
