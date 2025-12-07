@@ -3,36 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>B11 – Pedido: agregar/ver</title>
+  <title>B11 – Detalle del pedido</title>
 
   <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
   <style>
+    body { background-color: #f8f9fa; }
     .qty { width: 90px; }
     .card img { height: 180px; object-fit: cover; }
+    .table td,.table th{vertical-align:middle}
   </style>
 </head>
 <body class="bg-light">
   <div class="container py-4">
 
+    <!-- Encabezado -->
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h3 class="mb-0">🧾 Detalle del pedido</h3>
       <a class="btn btn-outline-secondary" href="B04catalogo.html">Seguir comprando</a>
     </div>
 
-    <!-- Gherkin -->
-    <div class="mb-3">
-      <h6 class="fw-bold">Escenarios (Gherkin)</h6>
-      <ul class="mb-0">
-        <li><b>Agregar producto:</b> al presionar “Agregar al carrito” en catálogo o detalle, el producto aparece aquí con su cantidad.</li>
-        <li><b>Ver detalle actualizado:</b> al abrir esta vista, se muestran cantidades, subtotales y el total correctos.</li>
-        <li><b>Confirmar pedido:</b> al presionar “Confirmar pedido”, se envía el carrito a la API y se vacía si todo va bien.</li>
-      </ul>
-    </div>
+  
 
-    <!-- Tabla -->
+    <!-- Tabla del carrito -->
     <div class="card shadow-sm">
       <div class="card-body">
         <div class="table-responsive">
@@ -61,138 +56,205 @@
           <button id="btnCheckout" class="btn btn-primary">Confirmar pedido</button>
           <a href="B14pago.html" class="btn btn-success">Continuar compra</a>
         </div>
-        <div id="orderMsg" class="mt-2 small text-muted"></div>
+        <div id="orderMsg" class="mt-2 small"></div>
       </div>
     </div>
 
-    <!-- Clase PedidoDetalle (mock documental) -->
-    <div class="mt-4">
-      <h6>Clase <code>PedidoDetalle</code> (referencia)</h6>
-<pre class="bg-white p-3 border rounded"><code>PedidoDetalle {
-  idDetalle: Integer
-  idPedido:  Integer
-  idProducto: String  // _id de Mongo del producto
-  nombreProducto: String
-  cantidad: Integer
-  precioUnitario: Number
-  subtotal: Number
-}</code></pre>
-    </div>
-  </div>
+  </div> <!-- /container -->
 
-  <!-- Lógica común -->
-  <script src="assets/app.js"></script>
+  <!-- app.js común (ajusta ruta si no está en /assets) -->
+  <script src="./assets/app.js"></script>
 
-  <!-- Lógica específica B11 -->
+  <!-- SCRIPT DE B11 -->
   <script>
-    // Solo construimos API_ORDENES usando la global que trae app.js (sin redeclarar API_BASE)
-    const API_ORDENES =
-      `${(typeof window.API_BASE === 'string' ? window.API_BASE : 'http://localhost:3000')}/api/pedidos`;
+    // ================================
+    // Config API pedidos
+    // ================================
+    const API_PEDIDOS = `${API_BASE}/api/pedidos`;
 
-    function getCart(){
-      try { return JSON.parse(localStorage.getItem('mariachi_cart')) || []; }
-      catch { return []; }
+    // ================================
+    // Carrito local (compartido con B04/B06)
+    // ================================
+    function getCarrito() {
+      try {
+        return JSON.parse(localStorage.getItem('mariachi_cart')) || [];
+      } catch {
+        return [];
+      }
     }
-    function setCart(c){ localStorage.setItem('mariachi_cart', JSON.stringify(c)); }
-    function getSession(){
-      try { return JSON.parse(localStorage.getItem('mariachi_user')) || null; }
-      catch { return null; }
+
+    function saveCarrito(carrito) {
+      localStorage.setItem('mariachi_cart', JSON.stringify(carrito));
     }
-    function formatCL(n){ return `$${Number(n || 0).toLocaleString('es-CL')}`; }
 
-    const tbody     = document.getElementById('tbodyCarrito');
-    const totalCell = document.getElementById('totalCell');
+    // ================================
+    // Utils
+    // ================================
+    function formatCL(n) {
+      return `$${Number(n || 0).toLocaleString('es-CL')}`;
+    }
 
-    function renderCart(){
-      const cart = getCart(); // [{ _id, nombre, precio, qty }]
-      if (!cart.length){
+    const tbody       = document.getElementById('tbodyCarrito');
+    const totalCell   = document.getElementById('totalCell');
+    const orderMsg    = document.getElementById('orderMsg');
+    const btnCheckout = document.getElementById('btnCheckout');
+
+    // ================================
+    // Render del carrito
+    // ================================
+    function renderCarrito(){
+      const carrito = getCarrito();
+
+      if (!carrito.length){
         tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">Tu pedido está vacío.</td></tr>`;
         totalCell.textContent = '$0';
+        btnCheckout.disabled = true;
         return;
       }
 
-      tbody.innerHTML = cart.map(it => `
-        <tr data-id="${it._id}">
+      btnCheckout.disabled = false;
+
+      tbody.innerHTML = carrito.map(it => `
+        <tr data-id="${it.id}">
           <td>${it.nombre}</td>
           <td class="text-center" style="width:160px">
             <div class="input-group input-group-sm mx-auto" style="max-width:140px">
               <button class="btn btn-outline-secondary btn-minus">−</button>
-              <input type="number" class="form-control text-center qty" value="${it.qty}" min="1">
+              <input type="number" class="form-control text-center qty" value="${it.cantidad}" min="1">
               <button class="btn btn-outline-secondary btn-plus">+</button>
             </div>
           </td>
           <td class="text-end">${formatCL(it.precio)}</td>
-          <td class="text-end item-subtotal">${formatCL(it.precio * it.qty)}</td>
+          <td class="text-end item-subtotal">${formatCL(it.precio * it.cantidad)}</td>
           <td class="text-end">
             <button class="btn btn-sm btn-outline-danger btn-del">Quitar</button>
           </td>
         </tr>
       `).join('');
 
-      const total = cart.reduce((s,i)=> s + i.precio*i.qty, 0);
+      const total = carrito.reduce((s,i)=> s + i.precio * i.cantidad, 0);
       totalCell.textContent = formatCL(total);
     }
 
+    // ================================
     // Eventos + / − / Quitar
+    // ================================
     tbody.addEventListener('click', (e) => {
-      const tr = e.target.closest('tr[data-id]'); if(!tr) return;
+      const tr = e.target.closest('tr[data-id]');
+      if (!tr) return;
       const id = tr.dataset.id;
-      let cart = getCart();
-      const it = cart.find(x => x._id === id); if(!it) return;
 
-      if (e.target.classList.contains('btn-minus')) it.qty = Math.max(1, it.qty - 1);
-      if (e.target.classList.contains('btn-plus'))  it.qty += 1;
-      if (e.target.classList.contains('btn-del')) {
-        cart = cart.filter(x => x._id !== id);
-        setCart(cart); renderCart(); return;
+      let carrito = getCarrito();
+      const item = carrito.find(p => p.id === id);
+      if (!item) return;
+
+      if (e.target.classList.contains('btn-minus')) {
+        item.cantidad = Math.max(1, item.cantidad - 1);
       }
-      setCart(cart); renderCart();
+      if (e.target.classList.contains('btn-plus')) {
+        item.cantidad += 1;
+      }
+      if (e.target.classList.contains('btn-del')) {
+        carrito = carrito.filter(p => p.id !== id);
+        saveCarrito(carrito);
+        renderCarrito();
+        return;
+      }
+
+      saveCarrito(carrito);
+      renderCarrito();
     });
 
     // Cambio manual de cantidad
-    tbody.addEventListener('change', (e)=>{
+    tbody.addEventListener('change', (e) => {
       const tr = e.target.closest('tr[data-id]');
       if (!tr || !e.target.classList.contains('qty')) return;
+
       const id  = tr.dataset.id;
-      const qty = Math.max(1, parseInt(e.target.value||1,10));
-      const cart = getCart();
-      const it = cart.find(x => x._id === id);
-      if (!it) return;
-      it.qty = qty;
-      setCart(cart); renderCart();
+      const qty = Math.max(1, parseInt(e.target.value || 1, 10));
+
+      const carrito = getCarrito();
+      const item = carrito.find(p => p.id === id);
+      if (!item) return;
+
+      item.cantidad = qty;
+      saveCarrito(carrito);
+      renderCarrito();
     });
 
-    // Confirmar pedido -> POST /api/pedidos
-    const btnCheckout = document.getElementById('btnCheckout');
-    if (btnCheckout){
-      btnCheckout.addEventListener('click', async ()=>{
-        const msg  = document.getElementById('orderMsg');
-        const user = getSession();
-        const items = getCart();
-        if (!user){ msg.textContent = 'Debes iniciar sesión.'; return; }
-        if (!items.length){ msg.textContent = 'Carrito vacío.'; return; }
+    // ================================
+    // Confirmar pedido → POST /api/pedidos
+    // ================================
+    btnCheckout.addEventListener('click', async () => {
+      const user    = getSession();         // viene de app.js
+      const carrito = getCarrito();
 
-        msg.textContent = 'Enviando pedido…';
-        try{
-          const res = await fetch(API_ORDENES, {
-            method: 'POST',
-            headers: { 'Content-Type':'application/json' },
-            body: JSON.stringify({ userId: user._id, items })
-          });
-          const data = await res.json().catch(()=>({}));
-          if (!res.ok){ msg.textContent = data.msg || 'Error al crear pedido'; return; }
-          msg.textContent = '✅ Pedido confirmado';
-          localStorage.removeItem('mariachi_cart');
-          renderCart();
-        }catch(err){
-          console.error(err);
-          msg.textContent = 'Error de red';
+      orderMsg.className = 'mt-2 small';
+
+      if (!user){
+        orderMsg.textContent = 'Debes iniciar sesión para confirmar el pedido.';
+        orderMsg.classList.add('text-danger');
+        return;
+      }
+      if (!carrito.length){
+        orderMsg.textContent = 'Tu carrito está vacío.';
+        orderMsg.classList.add('text-danger');
+        return;
+      }
+
+      orderMsg.textContent = 'Enviando pedido…';
+      orderMsg.classList.remove('text-danger', 'text-success');
+      orderMsg.classList.add('text-muted');
+
+      try {
+        const res = await fetch(API_PEDIDOS, {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json' },
+          body: JSON.stringify({
+            userId: user._id,
+            items: carrito
+          })
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok || data.ok === false){
+          orderMsg.textContent = data.msg || 'Error al crear el pedido.';
+          orderMsg.classList.remove('text-muted');
+          orderMsg.classList.add('text-danger');
+          return;
         }
-      });
-    }
 
+        // ✅ Pedido creado correctamente en la API
+        const pedidoCreado = data.pedido || data;   // ajusta si tu API devuelve otra estructura
+        localStorage.setItem('mariachi_pedido_actual', JSON.stringify(pedidoCreado));
+
+        // Vaciar carrito
+        saveCarrito([]);
+        renderCarrito();
+
+        orderMsg.textContent = '✅ Pedido confirmado correctamente. Redirigiendo…';
+        orderMsg.classList.remove('text-muted');
+        orderMsg.classList.add('text-success');
+
+        // Ir a B13 (ajusta nombre real del archivo si es distinto)
+        setTimeout(() => {
+          window.location.href = 'B13pedidoConfirmar.html';
+        }, 800);
+
+      } catch (err){
+        console.error('Error al enviar pedido:', err);
+        orderMsg.textContent = 'Error de red al contactar la API.';
+        orderMsg.classList.remove('text-muted');
+        orderMsg.classList.add('text-danger');
+      }
+    });
+
+    // ================================
     // Init
-    renderCart();
+    // ================================
+    renderCarrito();
   </script>
 </body>
 </html>
+

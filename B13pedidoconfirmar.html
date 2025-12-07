@@ -1,240 +1,332 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>B13 – Confirmar pedido</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<style>
-  .table td,.table th{vertical-align:middle}
-  .badge-stock{font-size:.8rem}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>B13 – Confirmar pedido</title>
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+
+  <style>
+    :root{
+      --morado:#5E239D;
+      --rosa:#C22972;
+      --dorado:#FFD700;
+      --morado-osc:#3E065F;
+      --verde:#00A86B;
+    }
+
+    body{
+      font-family:'Inter',sans-serif;
+      background: linear-gradient(180deg,var(--morado) 0%,var(--rosa) 50%,#FDC830 100%);
+      min-height:100vh;
+    }
+
+    .navbar{
+      background:var(--morado-osc) !important;
+    }
+    .navbar-brand{
+      font-family:"Baloo 2",cursive;
+      color:var(--dorado) !important;
+      text-shadow:2px 2px 5px #000;
+      font-size:1.4rem;
+    }
+    .nav-link{
+      color:#fff !important;
+      font-weight:600;
+    }
+
+    h1,h2,h3,h4{
+      font-family:"Baloo 2",cursive;
+    }
+
+    .page-card{
+      background:#fff;
+      border-radius:20px;
+      box-shadow:0 12px 30px rgba(0,0,0,.25);
+      border:none;
+    }
+
+    .gherkin li{
+      margin-bottom:.15rem;
+    }
+
+    .table thead{
+      background:#f5f5f7;
+    }
+
+    .badge-cat{
+      font-size:.8rem;
+    }
+  </style>
 </head>
-<body class="bg-light">
-<div class="container py-4">
+<body>
 
-  <!-- F1: Gherkin -->
-  <div class="mb-3">
-    <h5><strong>Escenarios (Gherkin):</strong></h5>
-    <ul class="mb-0">
-      <li><b>Escenario 1: Pedido válido</b> — Dado que todos los ítems tienen stock, cuando el cliente presiona “Confirmar pedido”, entonces el sistema genera el pedido sin errores.</li>
-      <li><b>Escenario 2: Producto agotado</b> — Dado que un ítem está sin stock, cuando el cliente presiona “Confirmar pedido”, entonces el sistema bloquea la confirmación y muestra un mensaje indicando el producto agotado.</li>
-    </ul>
-  </div>
+  <!-- NAVBAR (igual que el index, ajusta si tu versión es distinta) -->
+  <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="index.html"> El Mariachi</a>
 
-  <!-- F2: Resumen -->
-  <div class="card shadow-sm">
-    <div class="card-body">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="mb-0">🧾 Resumen del pedido</h4>
-        <div class="d-flex gap-2">
-          <a class="btn btn-outline-secondary btn-sm" href="B12modificar.html">Modificar</a>
-          <a class="btn btn-outline-secondary btn-sm" href="B04catalogo.html">Seguir comprando</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="mainNavbar">
+        <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+          <li class="nav-item"><a class="nav-link" href="index.html">Inicio</a></li>
+          <li class="nav-item"><a class="nav-link" href="B04catalogo.html">Catálogo</a></li>
+          <li class="nav-item">
+            <a class="nav-link" href="B11_pedido_detalle.html">
+              🛒 Carrito (<span id="cartCount">0</span>)
+            </a>
+          </li>
+          <li class="nav-item"><a class="nav-link" href="B14pago.html">Pagar</a></li>
+          <li class="nav-item"><a id="authLink" class="nav-link" href="B02login.html">Login</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- CONTENIDO -->
+  <div class="container py-4 py-md-5">
+
+    <div class="row justify-content-center">
+      <div class="col-12 col-xl-10">
+
+        <div class="card page-card">
+          <div class="card-body p-4 p-md-5">
+
+            <!-- Título -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+              <div>
+                <h2 class="mb-1"> Confirmar pedido</h2>
+                <p class="text-muted mb-0">Revisa el resumen antes de generar tu pedido.</p>
+              </div>
+              <a href="B04catalogo.html" class="btn btn-outline-secondary mt-3 mt-md-0">
+                Seguir comprando
+              </a>
+            </div>
+
+            <!-- Escenarios Gherkin -->
+            <div class="mb-3">
+              <h6 class="mb-1">Escenarios (Gherkin):</h6>
+              <ul class="gherkin small mb-0">
+                <li><strong>Escenario 1: Pedido válido</strong> — Dado que todos los ítems tienen stock, cuando el cliente presiona <em>“Confirmar pedido”</em>, entonces el sistema genera el pedido sin errores.</li>
+                <li><strong>Escenario 2: Producto agotado</strong> — Dado que un ítem está sin stock, cuando el cliente presiona <em>“Confirmar pedido”</em>, entonces el sistema bloquea la confirmación y muestra un mensaje indicando el producto agotado.</li>
+              </ul>
+            </div>
+
+            <!-- Resumen del pedido -->
+            <div class="table-responsive mb-3">
+              <table class="table align-middle">
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th class="text-center" style="width:130px;">Cantidad</th>
+                    <th class="text-end" style="width:140px;">P. Unitario</th>
+                    <th class="text-end" style="width:160px;">Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyResumen">
+                  <!-- filas dinámicas -->
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <th colspan="3" class="text-end">Total</th>
+                    <th class="text-end" id="totalCell">$0</th>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            <div id="msgB13" class="small mb-2 text-danger"></div>
+
+            <div class="d-flex justify-content-end gap-2">
+              <a href="B11_pedido_detalle.html" class="btn btn-outline-secondary">
+                Volver al detalle
+              </a>
+              <button id="btnConfirmar" class="btn btn-success">
+                Confirmar pedido
+              </button>
+            </div>
+
+          </div>
         </div>
-      </div>
 
-      <div class="table-responsive">
-        <table class="table align-middle">
-          <thead class="table-light">
-            <tr>
-              <th>Producto</th>
-              <th class="text-center">Cantidad</th>
-              <th class="text-center">Stock</th>
-              <th class="text-end">P. Unitario</th>
-              <th class="text-end">Subtotal</th>
-            </tr>
-          </thead>
-          <tbody id="tbody"></tbody>
-          <tfoot>
-            <tr>
-              <th colspan="4" class="text-end">Total</th>
-              <th class="text-end" id="totalCell">$0</th>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-
-      <div class="d-flex justify-content-end gap-2">
-        <button id="btnConfirmar" class="btn btn-success">Confirmar pedido</button>
-        <a href="B12modificar.html" class="btn btn-outline-secondary">Cancelar</a>
       </div>
     </div>
   </div>
 
-  <!-- F3: Modal Éxito -->
+  <!-- Modal OK -->
   <div class="modal fade" id="modalOk" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header bg-success text-white">
           <h5 class="modal-title">Pedido generado</h5>
           <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          <p>¡Listo! Tu pedido <strong id="okId"></strong> fue generado con éxito.</p>
-          <p><strong>Total:</strong> <span id="okTotal"></span></p>
+          <p id="okMensaje" class="mb-2">Tu pedido fue generado correctamente.</p>
+          <p class="mb-0">
+            <strong>ID Pedido:</strong>
+            <span id="okIdPedido"></span>
+          </p>
         </div>
         <div class="modal-footer">
-          <a class="btn btn-success" href="B14pago.html">Ir a pagar</a>
-          <a class="btn btn-outline-secondary" href="B04catalogo.html">Volver al catálogo</a>
+          <a href="B23_5misPedidos.html" class="btn btn-success">Ver mis pedidos</a>
+          <a href="B14pago.html" class="btn btn-outline-light">Ir a pagar</a>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- F4: Modal Error -->
-  <div class="modal fade" id="modalErr" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header bg-danger text-white">
-          <h5 class="modal-title">No se puede confirmar</h5>
-          <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <p>Algunos productos no tienen stock suficiente:</p>
-          <ul id="errList" class="mb-0"></ul>
-        </div>
-        <div class="modal-footer">
-          <a href="B12modificar.html" class="btn btn-danger">Modificar pedido</a>
-          <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-  <!-- F5: Clase Pedido (mock) -->
-  <div class="mt-4">
-    <h6>Clase <code>Pedido</code> (mock para B13):</h6>
-<pre class="bg-white p-3 border rounded"><code>Pedido {
-  id: Integer
-  fecha: DateTime
-  cliente: String
-  total: Float
-  estado: String          // "GENERADO" | "RECHAZADO"
-  tieneStock: Boolean
-  mensajeError: String
-  detalles: List&lt;PedidoDetalle&gt;
-}</code></pre>
-  </div>
-</div>
+  <!-- Archivo común con helpers de sesión, carrito y rutas API -->
+  <script src="assets/app.js"></script>
 
-<script>
-  // ====== Carrito (mismo de B11/B12) ======
-  const KEY_CART = 'carrito_b11';
-  const KEY_INV  = 'inventario_b13';     // inventario mock
-  const KEY_PEDH = 'pedidos_hist_b13';   // historial de pedidos
-  function loadCart(){ return JSON.parse(localStorage.getItem(KEY_CART) || '[]'); }
-  function saveCart(c){ localStorage.setItem(KEY_CART, JSON.stringify(c)); }
-
-  // ====== Inventario inicial (puedes editar cantidades) ======
-  (function seedInventory(){
-    if (localStorage.getItem(KEY_INV)) return;
-    const inventario = {
-      1: 10,  // Tacos al Pastor
-      2: 2,   // Burrito Especial
-      3: 0,   // Combo Fiesta (agotado para probar Esc.2)
-      4: 5    // Tacos Supremos
-    };
-    localStorage.setItem(KEY_INV, JSON.stringify(inventario));
-  })();
-
-  function loadInv(){ return JSON.parse(localStorage.getItem(KEY_INV) || '{}'); }
-  function saveInv(i){ localStorage.setItem(KEY_INV, JSON.stringify(i)); }
-
-  // ====== Render del resumen ======
-  const tbody = document.getElementById('tbody');
-  const totalCell = document.getElementById('totalCell');
-
-  function render(){
-    const cart = loadCart();
-    const inv = loadInv();
-
-    if (cart.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">Tu pedido está vacío.</td></tr>`;
-      totalCell.textContent = '$0';
-      return;
+  <script>
+    // ==============================
+    // 1) Contador de carrito (usa helpers de app.js)
+    // ==============================
+    function updateCartCountNav(){
+      try{
+        const span = document.getElementById('cartCount');
+        if(!span || !window.getCart) return;
+        const cart = getCart();
+        const totalItems = cart.reduce((acc,it)=>acc + (it.cantidad || 0),0);
+        span.textContent = totalItems;
+      }catch(e){ console.warn(e); }
     }
 
-    tbody.innerHTML = cart.map(d => {
-      const stock = inv[d.idProducto] ?? 0;
-      const ok = d.cantidad <= stock;
-      return `
-      <tr>
-        <td>${d.nombreProducto}</td>
-        <td class="text-center">${d.cantidad}</td>
-        <td class="text-center">
-          <span class="badge badge-stock ${ok?'bg-success':'bg-danger'}">${stock}</span>
-        </td>
-        <td class="text-end">$${d.precioUnitario}</td>
-        <td class="text-end">$${d.subtotal}</td>
-      </tr>`;
-    }).join('');
+    // ==============================
+    // 2) Render del resumen
+    // ==============================
+    const tbody   = document.getElementById('tbodyResumen');
+    const totalEl = document.getElementById('totalCell');
+    const btnOk   = document.getElementById('btnConfirmar');
+    const msgBox  = document.getElementById('msgB13');
 
-    const total = cart.reduce((acc,d)=>acc+d.subtotal,0);
-    totalCell.textContent = `$${total}`;
-  }
+    let totalActual = 0;
 
-  // ====== Confirmación: valida stock y genera pedido ======
-  document.getElementById('btnConfirmar').addEventListener('click', ()=>{
-    const cart = loadCart();
-    if (cart.length === 0) return;
+    function renderResumen(){
+      const cart = (window.getCart ? getCart() : []);
+      tbody.innerHTML = '';
+      msgBox.textContent = '';
+      totalActual = 0;
 
-    const inv = loadInv();
-    const faltantes = [];
-    for (const d of cart) {
-      const stock = inv[d.idProducto] ?? 0;
-      if (d.cantidad > stock) {
-        faltantes.push({ nombre:d.nombreProducto, pedido:d.cantidad, stock });
+      if(!cart.length){
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="4" class="text-center text-muted py-4">
+              Tu carrito está vacío. Vuelve al catálogo para agregar productos.
+            </td>
+          </tr>`;
+        totalEl.textContent = '$0';
+        btnOk.disabled = true;
+        return;
+      }
+
+      btnOk.disabled = false;
+
+      const filas = cart.map(item=>{
+        const cantidad = item.cantidad || 1;
+        const precio   = Number(item.precio)||0;
+        const subtotal = cantidad * precio;
+        totalActual += subtotal;
+        return `
+          <tr>
+            <td>${item.nombre}</td>
+            <td class="text-center">${cantidad}</td>
+            <td class="text-end">$${precio.toLocaleString('es-CL')}</td>
+            <td class="text-end">$${subtotal.toLocaleString('es-CL')}</td>
+          </tr>`;
+      }).join('');
+
+      tbody.innerHTML = filas;
+      totalEl.textContent = '$'+ totalActual.toLocaleString('es-CL');
+    }
+
+    // ==============================
+    // 3) Confirmar pedido → API / Mongo
+    // ==============================
+    async function confirmarPedido(){
+      const cart = (window.getCart ? getCart() : []);
+      if(!cart.length){
+        msgBox.textContent = 'No hay productos para confirmar.';
+        return;
+      }
+
+      const user  = window.getSession ? getSession() : null;
+      const email = user?.email || 'cliente@test.com';
+
+      const payload = {
+        clienteEmail: email,
+        items: cart.map(it=>({
+          idProducto: it.id,
+          nombre: it.nombre,
+          cantidad: it.cantidad || 1,
+          precio: it.precio
+        })),
+        total: totalActual,
+        estado: 'pendiente'
+      };
+
+      try{
+        msgBox.textContent = 'Enviando pedido…';
+
+        const res = await fetch(`${API_BASE}/api/pedidos`, {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json().catch(()=> ({}));
+
+        if(!res.ok){
+          msgBox.textContent = data.error || 'No se pudo generar el pedido.';
+          return;
+        }
+
+        // Tomamos el id devuelto en cualquiera de estos campos
+        const idPedido = data._id || data.id || data.pedidoId || (data.pedido && data.pedido._id) || '—';
+
+        // Guardar último pedido para B14 si quieres usarlo allí
+        try{
+          localStorage.setItem('mariachi_last_pedido', idPedido);
+        }catch(e){}
+
+        // Vaciar carrito
+        if(window.setCart) setCart([]);
+        updateCartCountNav();
+
+        // Mostrar modal OK
+        document.getElementById('okIdPedido').textContent = idPedido;
+        document.getElementById('okMensaje').textContent  = 'Tu pedido fue generado y almacenado en el sistema.';
+        new bootstrap.Modal(document.getElementById('modalOk')).show();
+
+        msgBox.textContent = '';
+
+      }catch(err){
+        console.error(err);
+        msgBox.textContent = 'Error de conexión al generar el pedido.';
       }
     }
 
-    // Escenario 2: hay faltantes
-    if (faltantes.length) {
-      const ul = document.getElementById('errList');
-      ul.innerHTML = faltantes.map(f =>
-        `<li><strong>${f.nombre}</strong>: solicitaste ${f.pedido}, disponible ${f.stock}</li>`
-      ).join('');
-      new bootstrap.Modal(document.getElementById('modalErr')).show();
-      return;
-    }
-
-    // Escenario 1: OK → descontar, guardar pedido, limpiar carrito
-    for (const d of cart) {
-      inv[d.idProducto] = (inv[d.idProducto] ?? 0) - d.cantidad;
-    }
-    saveInv(inv);
-
-    const total = cart.reduce((acc,d)=>acc+d.subtotal,0);
-    const pedido = {
-      id: Date.now(),
-      fecha: new Date().toISOString(),
-      cliente: "cliente@elmariachi.cl",
-      total,
-      estado: "GENERADO",
-      tieneStock: true,
-      mensajeError: "",
-      detalles: cart
-    };
-
-    const hist = JSON.parse(localStorage.getItem(KEY_PEDH) || '[]');
-    hist.unshift(pedido);
-    localStorage.setItem(KEY_PEDH, JSON.stringify(hist));
-
-    // limpiar carrito
-    saveCart([]);
-
-    // mostrar modal OK
-    document.getElementById('okId').textContent = `#${pedido.id}`;
-    document.getElementById('okTotal').textContent = `$${total}`;
-    new bootstrap.Modal(document.getElementById('modalOk')).show();
-
-    // refrescar tabla para mostrar vacío
-    render();
-  });
-
-  // Init
-  render();
-</script>
+    // ==============================
+    // 4) Arranque
+    // ==============================
+    document.addEventListener('DOMContentLoaded', ()=>{
+      updateCartCountNav();
+      renderResumen();
+      btnOk.addEventListener('click', confirmarPedido);
+    });
+  </script>
 </body>
 </html>
-
+  

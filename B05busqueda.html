@@ -4,10 +4,27 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>B05 – Búsqueda/Filtros</title>
+
+  <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <style>
+    body {
+      background: linear-gradient(180deg, #5E239D 0%, #C22972 50%, #FDC830 100%);
+      min-height: 100vh;
+      color: #fff;
+    }
+    h2 {
+      color: #FFD700;
+      text-shadow: 2px 2px 4px #000;
+    }
+    .card {
+      border-radius: 12px;
+    }
+  </style>
 </head>
-<body class="bg-light">
+<body>
 
 <div class="container py-4">
 
@@ -17,70 +34,109 @@
   <div id="params" class="alert alert-info"></div>
 
   <!-- Contenedor de resultados -->
-  <div id="resultados" class="row g-4"></div>
+  <div id="resultados" class="row g-4 mt-3"></div>
 
 </div>
+
+<!-- 🔹 Script común con API_BASE / API_PRODUCTOS -->
+<script src="assets/app.js"></script>
+
 
 <script>
   // === 1. Leer parámetros de búsqueda de la URL ===
   const params = new URLSearchParams(window.location.search);
-  const q = (params.get('q') || '').toLowerCase();
-  const cat = (params.get('cat') || '').toLowerCase();
+  const q   = (params.get('q')   || '').trim();
+  const cat = (params.get('cat') || '').trim();
 
   // Mostrar parámetros en pantalla (para depuración)
   document.getElementById('params').innerHTML =
     `<strong>Parámetros:</strong> q = "${q}" | cat = "${cat}"`;
 
-  // === 2. Datos de ejemplo (simula el catálogo) ===
-  const PRODUCTOS = [
-    {id:1, nombre:'Tacos al Pastor', categoria:'tacos', precio:4990, img:'assets/ImagenesMariachi/tacos1.jpg'},
-    {id:2, nombre:'Tacos Supremos', categoria:'tacos', precio:5990, img:'assets/ImagenesMariachi/tacos3.jpg'},
-    {id:3, nombre:'Burrito Especial', categoria:'burritos', precio:6490, img:'assets/ImagenesMariachi/burrito1.jpg'},
-    {id:4, nombre:'Combo Fiesta', categoria:'combos', precio:10990, img:'assets/ImagenesMariachi/combo4.jpeg'},
-    {id:5, nombre:'Combo Familiar', categoria:'combos', precio:12990, img:'assets/ImagenesMariachi/combo5.jpeg'},
-  ];
-
-  // === 3. Filtrado por texto y/o categoría ===
-  let filtrados = PRODUCTOS;
-
-  if (q) {
-    filtrados = filtrados.filter(p =>
-      p.nombre.toLowerCase().includes(q)
-    );
-  }
-
-  if (cat) {
-    filtrados = filtrados.filter(p =>
-      p.categoria.toLowerCase() === cat
-    );
-  }
-
-  // === 4. Mostrar resultados ===
   const cont = document.getElementById('resultados');
 
-  if (filtrados.length === 0) {
-    cont.innerHTML = `
-      <div class="col-12 text-center">
-        <div class="alert alert-warning">😕 No se encontraron resultados para tu búsqueda.</div>
-      </div>
-    `;
-  } else {
-    cont.innerHTML = filtrados.map(p => `
-      <div class="col-sm-6 col-md-4 col-lg-3">
-        <div class="card h-100 shadow-sm">
-          <img src="${p.img}" class="card-img-top" alt="${p.nombre}">
-          <div class="card-body">
-            <h5 class="card-title">${p.nombre}</h5>
-            <span class="badge bg-secondary text-uppercase">${p.categoria}</span>
-            <p class="mt-2 mb-1"><strong>$${p.precio}</strong></p>
-            <a href="B06productodetalle.html?id=${p.id}" class="btn btn-success btn-sm">Ver detalle</a>
+  // === 2. Construir URL hacia la API de productos ===
+  // API_PRODUCTOS viene definido en app.js
+  const url = new URL(API_PRODUCTOS);
+  if (q)   url.searchParams.set('q', q);
+  if (cat) url.searchParams.set('cat', cat);
+
+  // === 3. Llamar al backend y mostrar resultados ===
+  async function cargarBusqueda() {
+    try {
+      cont.innerHTML = `
+        <div class="col-12 text-center">
+          <div class="alert alert-warning mb-0">Cargando resultados…</div>
+        </div>
+      `;
+
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+
+      let productos = await resp.json();
+
+      // Si tu backend aún NO filtra por q/cat,
+      // hacemos un filtrado extra en el frontend:
+      if (q) {
+        const qLower = q.toLowerCase();
+        productos = productos.filter(p =>
+          String(p.nombre || '').toLowerCase().includes(qLower)
+        );
+      }
+      if (cat) {
+        const catLower = cat.toLowerCase();
+        productos = productos.filter(p =>
+          String(p.categoria || '').toLowerCase() === catLower
+        );
+      }
+
+      if (!Array.isArray(productos) || productos.length === 0) {
+        cont.innerHTML = `
+          <div class="col-12 text-center">
+            <div class="alert alert-light text-dark">
+              😕 No se encontraron resultados para tu búsqueda.
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      cont.innerHTML = productos.map(p => `
+        <div class="col-sm-6 col-md-4 col-lg-3">
+          <div class="card h-100 shadow-sm">
+            <img src="${p.imgUrl || 'assets/ImagenesMariachi/placeholder.jpg'}"
+                 class="card-img-top" alt="${p.nombre}">
+            <div class="card-body d-flex flex-column">
+              <h5 class="card-title mb-1">${p.nombre}</h5>
+              <span class="badge bg-secondary text-uppercase mb-2">
+                ${p.categoria || 'sin categoría'}
+              </span>
+              <p class="mt-2 mb-3 fw-bold">
+                $${Number(p.precio || 0).toLocaleString('es-CL')}
+              </p>
+              <a href="B06productodetalle.html?id=${p._id}"
+                 class="btn btn-success btn-sm mt-auto">
+                Ver detalle
+              </a>
+            </div>
           </div>
         </div>
-      </div>
-    `).join('');
+      `).join('');
+
+    } catch (err) {
+      console.error('Error en búsqueda:', err);
+      cont.innerHTML = `
+        <div class="col-12 text-center">
+          <div class="alert alert-danger">
+            Error al cargar resultados. Revisa que el backend esté activo
+            en <code>${API_BASE}</code>.
+          </div>
+        </div>
+      `;
+    }
   }
+
+  cargarBusqueda();
 </script>
 
 </body>
 </html>
-

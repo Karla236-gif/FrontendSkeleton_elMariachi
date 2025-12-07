@@ -98,7 +98,7 @@
           <p><strong>Transacción:</strong> <span id="okTx"></span></p>
         </div>
         <div class="modal-footer">
-          <a class="btn btn-success" href="index.html">Volver al inicio</a>
+          <a class="btn btn.success" href="index.html">Volver al inicio</a>
           <a class="btn btn-outline-secondary" href="B04catalogo.html">Seguir comprando</a>
         </div>
       </div>
@@ -127,11 +127,14 @@
 
 </div>
 
+<!-- app.js común para sesión / helpers (mismo que en el resto del sitio) -->
+<script src="./assets/app.js"></script>
+
 <script>
   // ====== Estado previo ======
-  const KEY_CART = 'carrito_b11';
+  const KEY_CART = 'mariachi_cart';           // antes: 'carrito_b11'
   const KEY_PEDH = 'pedidos_hist_b13';
-  const KEY_PGOK = 'pagos_procesados_b14';  // idempotencia
+  const KEY_PGOK = 'pagos_procesados_b14';    // idempotencia
 
   function loadCart(){ return JSON.parse(localStorage.getItem(KEY_CART) || '[]'); }
   function loadPedHist(){ return JSON.parse(localStorage.getItem(KEY_PEDH) || '[]'); }
@@ -143,7 +146,7 @@
     const qTotal = parseInt(qp.get('total')||'0',10);
     if (qTotal>0) return qTotal;
     const cart = loadCart();
-    return cart.reduce((acc, d) => acc + d.subtotal, 0);
+    return cart.reduce((acc, d) => acc + (d.subtotal || (d.precio * d.cantidad)), 0);
   }
 
   const el = {
@@ -159,7 +162,7 @@
     total: getTotal(),
     pedidoId: (() => {
       const hist = loadPedHist();
-      return hist.length ? hist[0].id : Date.now();
+      return hist.length ? (hist[0].id || hist[0]._id || Date.now()) : Date.now();
     })()
   };
 

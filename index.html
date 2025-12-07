@@ -48,7 +48,6 @@
     }
     .nav-link:hover {
       color: var(--dorado) !important;
-      text-shadow: 0 0 10px #fff;
       transform: scale(1.1);
     }
 
@@ -65,10 +64,7 @@
       color: #fff;
       text-shadow: 3px 3px 0 #000;
     }
-    .hero p {
-      font-size: 1.3rem;
-      font-weight: 500;
-    }
+
     .hero .btn {
       background-color: var(--verde);
       border: none;
@@ -85,27 +81,12 @@
       transform: scale(1.05);
     }
 
-    /* SECCIÓN BÚSQUEDA */
-    #busqueda {
-      background-color: #fff;
-      color: #000;
-    }
-    #busqueda h2 {
-      color: var(--morado-osc);
-    }
-
     /* CARRUSEL */
     .carousel-item img {
       height: 400px;
       object-fit: cover;
       border-radius: 1rem;
       border: 4px solid var(--dorado);
-    }
-    .carousel .carousel-indicators [data-bs-target] {
-      background: rgba(255,255,255,0.5);
-    }
-    .carousel .carousel-indicators .active {
-      background: var(--dorado);
     }
 
     /* DESTACADOS */
@@ -125,14 +106,9 @@
       box-shadow: 0 0 20px var(--dorado);
     }
     .card img {
-      border-top-left-radius: 1rem;
-      border-top-right-radius: 1rem;
       height: 200px;
       object-fit: cover;
-    }
-    .card-title {
-      color: var(--morado-osc);
-      font-weight: bold;
+      border-radius: 1rem 1rem 0 0;
     }
 
     /* FOOTER */
@@ -140,7 +116,6 @@
       background-color: var(--morado-osc);
       color: #fff;
       padding: 1.5rem 0;
-      text-shadow: 1px 1px 3px #000;
       border-top: 4px solid var(--dorado);
     }
   </style>
@@ -149,17 +124,18 @@
 <body>
 
   <!-- NAV -->
-  <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
-    <div class="container-fluid">
-      <a class="navbar-brand fw-bold" href="index.html">🌮 El Mariachi</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+  <nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+      <a class="navbar-brand" href="index.html">🌮 El Mariachi</a>
+
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
         <span class="navbar-toggler-icon"></span>
       </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
+
+      <div class="collapse navbar-collapse" id="mainNavbar">
         <ul class="navbar-nav ms-auto">
-          <li class="nav-item"><a class="nav-link active" href="index.html">Inicio</a></li>
-          <li class="nav-item"><a class="nav-link" href="B04catalogo.html">Catálogo</a></li>
-          <li class="nav-item"><a class="nav-link" href="B11_pedido_detalle.html">Pedidos</a></li>
+          <li class="nav-item"><a class="nav-link" href="index.html">Inicio</a></li>
+          <li class="nav-item"><a class="nav-link" href="B11_pedido_detalle.html">🛒 Carrito</a></li>
           <li class="nav-item"><a class="nav-link" href="B14pago.html">Pagar</a></li>
           <li class="nav-item"><a class="nav-link" href="B02login.html">Login</a></li>
         </ul>
@@ -174,42 +150,28 @@
     <a href="B04catalogo.html" class="btn btn-lg mt-3">Ver Catálogo</a>
   </div>
 
-  <!-- BÚSQUEDA (B05) -->
-  <section id="busqueda" class="py-5 text-center">
-    <div class="container">
-      <h2 class="fw-bold mb-4">🔍 Busca tu platillo favorito</h2>
-
-      <div class="input-group mb-3">
-        <input id="busquedaTexto" type="text" class="form-control"
-               placeholder="Escribe Tacos, Burritos o Combos...">
-        <button id="btnBuscar" class="btn btn-success">Buscar</button>
-      </div>
-
-      <div class="d-flex flex-wrap justify-content-center gap-3 mt-3">
-        <button class="btn btn-outline-primary btn-sm filtro" data-cat="tacos">🌮 Tacos</button>
-        <button class="btn btn-outline-success btn-sm filtro" data-cat="burritos">🌯 Burritos</button>
-        <button class="btn btn-outline-warning btn-sm filtro" data-cat="combos">🍱 Combos</button>
-        <button class="btn btn-outline-secondary btn-sm filtro" data-cat="">Mostrar todo</button>
-      </div>
-    </div>
-  </section>
-
   <!-- CARRUSEL -->
   <div id="carouselTacos" class="carousel slide mt-5 container" data-bs-ride="carousel">
     <div class="carousel-inner">
+
       <div class="carousel-item active">
-        <img src="assets/ImagenesMariachi/tacos1.jpg" class="d-block w-100" alt="Tacos tradicionales">
+        <img src="assets/ImagenesMariachi/tacos4.jpeg" class="d-block w-100">
       </div>
+
       <div class="carousel-item">
-        <img src="assets/ImagenesMariachi/tacos2.jpg" class="d-block w-100" alt="Tacos al pastor">
+        <img src="assets/ImagenesMariachi/tacos3.jpg" class="d-block w-100">
       </div>
+
       <div class="carousel-item">
-        <img src="assets/ImagenesMariachi/burrito1.jpg" class="d-block w-100" alt="Burrito clásico">
+        <img src="assets/ImagenesMariachi/burrito8.jpg" class="d-block w-100">
       </div>
+
       <div class="carousel-item">
-        <img src="assets/ImagenesMariachi/combo3.webp" class="d-block w-100" alt="Combo mexicano">
+        <img src="assets/ImagenesMariachi/burrito2.jpg" class="d-block w-100">
       </div>
+
     </div>
+
     <button class="carousel-control-prev" type="button" data-bs-target="#carouselTacos" data-bs-slide="prev">
       <span class="carousel-control-prev-icon"></span>
     </button>
@@ -221,34 +183,39 @@
   <!-- DESTACADOS -->
   <section class="container text-center my-5">
     <h2 class="fw-bold mb-4">🌶️ Platillos Destacados 🌵</h2>
+
     <div class="row g-4">
+
       <div class="col-md-4">
         <div class="card shadow">
-          <img src="assets/ImagenesMariachi/tacos1.jpg" class="card-img-top" alt="Tacos al Pastor">
+          <img src="assets/ImagenesMariachi/tacos10.webp">
           <div class="card-body">
-            <h5 class="card-title">Tacos al Pastor</h5>
-            <p class="card-text">Sabores auténticos con piña y cebolla. ¡Los favoritos de siempre!</p>
+            <h5 class="card-title">Tacos Dorados</h5>
+            <p class="card-text">Crujientes y llenos de sabor tradicional.</p>
           </div>
         </div>
       </div>
+
       <div class="col-md-4">
         <div class="card shadow">
-          <img src="assets/ImagenesMariachi/burrito1.jpg" class="card-img-top" alt="Burrito Especial">
+          <img src="assets/ImagenesMariachi/burrito11.webp">
           <div class="card-body">
             <h5 class="card-title">Burrito Especial</h5>
-            <p class="card-text">Relleno de carne, arroz y guacamole. Una explosión de sabor.</p>
+            <p class="card-text">Carne, arroz, guacamole y salsa casera.</p>
           </div>
         </div>
       </div>
+
       <div class="col-md-4">
         <div class="card shadow">
-          <img src="assets/ImagenesMariachi/combo5.jpeg" class="card-img-top" alt="Combo Familiar">
+          <img src="assets/ImagenesMariachi/combofamiliar.jpg">
           <div class="card-body">
             <h5 class="card-title">Combo Familiar</h5>
-            <p class="card-text">Incluye burritos, tacos y bebida. Perfecto para compartir.</p>
+            <p class="card-text">La mejor selección para compartir en familia.</p>
           </div>
         </div>
       </div>
+
     </div>
   </section>
 
@@ -256,36 +223,6 @@
   <footer class="text-center">
     <p>&copy; 2025 El Mariachi 🌮 – Sabor que enamora 💚🤍❤️</p>
   </footer>
-
-  <!-- SCRIPT CORREGIDO PARA BÚSQUEDA -->
-  <script>
-    // ✅ Usa el nombre correcto del archivo
-    const RUTA_B05 = "B05busqueda.html";
-
-    function irABusqueda(q = "", cat = "") {
-      const params = new URLSearchParams();
-      if (q) params.set("q", q);
-      if (cat) params.set("cat", cat);
-      const url = `${RUTA_B05}?${params.toString()}`;
-      console.log("➡️ Navegando a:", url);
-      window.location.href = url;
-    }
-
-    const input = document.getElementById("busquedaTexto");
-    const btnBuscar = document.getElementById("btnBuscar");
-
-    btnBuscar.addEventListener("click", () => {
-      irABusqueda(input.value.trim());
-    });
-
-    input.addEventListener("keydown", e => {
-      if (e.key === "Enter") irABusqueda(input.value.trim());
-    });
-
-    document.querySelectorAll(".filtro").forEach(btn => {
-      btn.addEventListener("click", () => irABusqueda("", btn.dataset.cat));
-    });
-  </script>
 
 </body>
 </html>
