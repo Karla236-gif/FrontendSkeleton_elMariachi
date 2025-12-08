@@ -6,16 +6,25 @@ console.log('app.js cargado');
 // ------------------------------------------------------
 // 0) CONFIG API
 // ------------------------------------------------------
-window.API_BASE = 'http://localhost:4000';
+window.API_BASE = 'http://localhost:4000';   // 
 
 const API_BASE      = window.API_BASE;
 const API_PRODUCTOS = `${API_BASE}/api/productos`;
 const API_USUARIOS  = `${API_BASE}/api/usuarios`;
+const API_PEDIDOS   = `${API_BASE}/api/pedidos`;
 const API_LOGIN     = `${API_USUARIOS}/login`;
 
+// Exponer en window para otras páginas (B04, B11, etc.)
 window.API_PRODUCTOS = API_PRODUCTOS;
 window.API_USUARIOS  = API_USUARIOS;
+window.API_PEDIDOS   = API_PEDIDOS;
 window.API_LOGIN     = API_LOGIN;
+
+
+// Solo para depurar:
+console.log('API_BASE      =', API_BASE);
+console.log('API_PEDIDOS   =', API_PEDIDOS);
+    
 
 // ------------------------------------------------------
 // 1) Helpers de sesión

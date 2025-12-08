@@ -1,22 +1,32 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>B14 – Pago</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<style>
-  .method-card{cursor:pointer;border:2px solid transparent}
-  .method-card.active{border-color:#198754; box-shadow:0 0 0 .25rem rgba(25,135,84,.25)}
-  .alert-fixed{position:fixed; right:16px; bottom:16px; z-index:2000}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>B14 – Pago</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <style>
+    .method-card{cursor:pointer;border:2px solid transparent}
+    .method-card.active{
+      border-color:#198754;
+      box-shadow:0 0 0 .25rem rgba(25,135,84,.25)
+    }
+    .alert-fixed{
+      position:fixed;
+      right:16px;
+      bottom:16px;
+      z-index:2000
+    }
+  </style>
 </head>
 <body class="bg-light">
 <div class="container py-4">
 
-  <!-- F2: Método de pago + total -->
   <div class="row g-3">
+    <!-- Métodos de pago -->
     <div class="col-lg-8">
       <div class="row g-3" id="metodos">
         <div class="col-sm-6 col-md-4">
@@ -66,6 +76,7 @@
       </div>
     </div>
 
+    <!-- Resumen -->
     <div class="col-lg-4">
       <div class="card">
         <div class="card-body">
@@ -98,7 +109,7 @@
           <p><strong>Transacción:</strong> <span id="okTx"></span></p>
         </div>
         <div class="modal-footer">
-          <a class="btn btn.success" href="index.html">Volver al inicio</a>
+          <a class="btn btn-success" href="index.html">Volver al inicio</a>
           <a class="btn btn-outline-secondary" href="B04catalogo.html">Seguir comprando</a>
         </div>
       </div>
@@ -119,7 +130,7 @@
         </div>
         <div class="modal-footer">
           <button class="btn btn-danger" data-bs-dismiss="modal">Intentar de nuevo</button>
-          <a class="btn btn-outline-secondary" href="B12modificar.html">Volver al pedido</a>
+          <a class="btn btn-outline-secondary" href="B11_pedido_detalle.html">Volver al pedido</a>
         </div>
       </div>
     </div>
@@ -127,26 +138,31 @@
 
 </div>
 
-<!-- app.js común para sesión / helpers (mismo que en el resto del sitio) -->
+<!-- app.js común -->
 <script src="./assets/app.js"></script>
 
 <script>
-  // ====== Estado previo ======
-  const KEY_CART = 'mariachi_cart';           // antes: 'carrito_b11'
-  const KEY_PEDH = 'pedidos_hist_b13';
-  const KEY_PGOK = 'pagos_procesados_b14';    // idempotencia
+  // Por si quedó algo viejo de versiones anteriores
+  try { localStorage.removeItem('carrito_b11'); } catch {}
 
-  function loadCart(){ return JSON.parse(localStorage.getItem(KEY_CART) || '[]'); }
-  function loadPedHist(){ return JSON.parse(localStorage.getItem(KEY_PEDH) || '[]'); }
+  const KEY_PGOK = 'pagos_procesados_b14';
+
   function loadProcessed(){ return JSON.parse(localStorage.getItem(KEY_PGOK) || '[]'); }
   function saveProcessed(list){ localStorage.setItem(KEY_PGOK, JSON.stringify(list)); }
 
+  // Total SIEMPRE desde el carrito actual
   function getTotal(){
-    const qp = new URLSearchParams(location.search);
-    const qTotal = parseInt(qp.get('total')||'0',10);
-    if (qTotal>0) return qTotal;
-    const cart = loadCart();
-    return cart.reduce((acc, d) => acc + (d.subtotal || (d.precio * d.cantidad)), 0);
+    try {
+      const raw = localStorage.getItem('mariachi_cart') || '[]';
+      const cart = JSON.parse(raw);
+      if (!Array.isArray(cart)) return 0;
+      return cart.reduce(
+        (acc, d) => acc + (d.precio * d.cantidad),
+        0
+      );
+    } catch {
+      return 0;
+    }
   }
 
   const el = {
@@ -160,12 +176,10 @@
   const state = {
     metodo: null,
     total: getTotal(),
-    pedidoId: (() => {
-      const hist = loadPedHist();
-      return hist.length ? (hist[0].id || hist[0]._id || Date.now()) : Date.now();
-    })()
+    pedidoId: localStorage.getItem('mariachi_pedido_id') || Date.now()
   };
 
+  // Pintar total inicial
   el.total.textContent = `$${state.total.toLocaleString('es-CL')}`;
 
   // Selección de método
@@ -178,7 +192,7 @@
     el.lblMetodo.textContent = state.metodo;
   });
 
-  // Simulación pasarela
+  // Simulación de pasarela
   function simulateGateway(result){
     const txid = result==='doble' ? 'TX-' + (state.pedidoId) : 'TX-' + Date.now();
     if (result==='doble') {
@@ -200,26 +214,22 @@
     if(!list.includes(txid)){ list.push(txid); saveProcessed(list); }
   }
 
+  // Callback de la “pasarela”
   function onGatewayCallback({estado, tx, motivo}){
     toast(`Notificación: <b>${estado}</b> (tx=${tx})`);
+
     if (alreadyProcessed(tx)) {
       toast('Segunda notificación: ignorada (idempotencia)');
       return;
     }
     markProcessed(tx);
+
     if (estado==='aprobado') {
-      const pago = {
-        idPago: Date.now(),
-        idPedido: state.pedidoId,
-        monto: state.total,
-        metodo: state.metodo || 'credito',
-        estado: 'aprobado',
-        transaccionId: tx,
-        fechaPago: new Date().toISOString(),
-        mensajeRespuesta: 'Aprobado por pasarela'
-      };
-      document.getElementById('okPedido').textContent = `#${pago.idPedido}`;
-      document.getElementById('okTx').textContent = pago.transaccionId;
+      // Vaciar carrito SOLO cuando el pago fue exitoso
+      localStorage.removeItem('mariachi_cart');
+
+      document.getElementById('okPedido').textContent = `#${state.pedidoId}`;
+      document.getElementById('okTx').textContent = tx;
       new bootstrap.Modal(document.getElementById('modalOk')).show();
     } else {
       document.getElementById('errMotivo').textContent = motivo || 'Operación rechazada';
@@ -227,6 +237,7 @@
     }
   }
 
+  // Click en Pagar
   el.btnPagar.addEventListener('click', ()=>{
     if (!state.metodo) {
       toast('Selecciona un método de pago.');
@@ -239,6 +250,7 @@
     simulateGateway(el.simResultado.value);
   });
 
+  // Helper para toasts
   function toast(html){
     const wrap = document.createElement('div');
     wrap.innerHTML = `

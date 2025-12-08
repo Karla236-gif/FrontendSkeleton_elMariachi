@@ -5,15 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>B11 – Detalle del pedido</title>
 
-  <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
   <style>
     body { background-color: #f8f9fa; }
+    .table td, .table th { vertical-align: middle; }
     .qty { width: 90px; }
-    .card img { height: 180px; object-fit: cover; }
-    .table td,.table th{vertical-align:middle}
   </style>
 </head>
 <body class="bg-light">
@@ -24,8 +22,6 @@
       <h3 class="mb-0">🧾 Detalle del pedido</h3>
       <a class="btn btn-outline-secondary" href="B04catalogo.html">Seguir comprando</a>
     </div>
-
-  
 
     <!-- Tabla del carrito -->
     <div class="card shadow-sm">
@@ -53,207 +49,199 @@
         </div>
 
         <div class="d-flex justify-content-end gap-2">
-          <button id="btnCheckout" class="btn btn-primary">Confirmar pedido</button>
+          <button id="btnCheckout" type="button" class="btn btn-primary">
+            Confirmar pedido
+          </button>
           <a href="B14pago.html" class="btn btn-success">Continuar compra</a>
         </div>
+
         <div id="orderMsg" class="mt-2 small"></div>
       </div>
     </div>
 
-  </div> <!-- /container -->
+  </div>
 
-  <!-- app.js común (ajusta ruta si no está en /assets) -->
+  <!-- app.js común (define API_PEDIDOS, getSession, etc.) -->
   <script src="./assets/app.js"></script>
 
-  <!-- SCRIPT DE B11 -->
   <script>
     // ================================
-    // Config API pedidos
-    // ================================
-    const API_PEDIDOS = `${API_BASE}/api/pedidos`;
-
-    // ================================
-    // Carrito local (compartido con B04/B06)
+    // Helpers de carrito (mariachi_cart)
     // ================================
     function getCarrito() {
       try {
-        return JSON.parse(localStorage.getItem('mariachi_cart')) || [];
-      } catch {
+        const raw = localStorage.getItem('mariachi_cart');
+        const arr = raw ? JSON.parse(raw) : [];
+        console.log('B11 > mariachi_cart =', arr);
+        return Array.isArray(arr) ? arr : [];
+      } catch (e) {
+        console.error('Error leyendo mariachi_cart', e);
         return [];
       }
     }
 
-    function saveCarrito(carrito) {
-      localStorage.setItem('mariachi_cart', JSON.stringify(carrito));
+    function saveCarrito(c) {
+      localStorage.setItem('mariachi_cart', JSON.stringify(c || []));
     }
 
-    // ================================
-    // Utils
-    // ================================
     function formatCL(n) {
       return `$${Number(n || 0).toLocaleString('es-CL')}`;
     }
 
-    const tbody       = document.getElementById('tbodyCarrito');
-    const totalCell   = document.getElementById('totalCell');
-    const orderMsg    = document.getElementById('orderMsg');
-    const btnCheckout = document.getElementById('btnCheckout');
+    document.addEventListener('DOMContentLoaded', () => {
+      const tbody       = document.getElementById('tbodyCarrito');
+      const totalCell   = document.getElementById('totalCell');
+      const orderMsg    = document.getElementById('orderMsg');
+      const btnCheckout = document.getElementById('btnCheckout');
 
-    // ================================
-    // Render del carrito
-    // ================================
-    function renderCarrito(){
-      const carrito = getCarrito();
+      // -----------------------------
+      // Render carrito
+      // -----------------------------
+      function renderCarrito() {
+        const carrito = getCarrito();
 
-      if (!carrito.length){
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">Tu pedido está vacío.</td></tr>`;
-        totalCell.textContent = '$0';
-        btnCheckout.disabled = true;
-        return;
+        if (!carrito.length) {
+          tbody.innerHTML =
+            '<tr><td colspan="5" class="text-center text-muted py-3">Tu pedido está vacío.</td></tr>';
+          totalCell.textContent = '$0';
+          btnCheckout.disabled = true;
+          return;
+        }
+
+        btnCheckout.disabled = false;
+
+        tbody.innerHTML = carrito.map(it => `
+          <tr data-id="${it.id}">
+            <td>${it.nombre}</td>
+            <td class="text-center" style="width:160px">
+              <div class="input-group input-group-sm mx-auto" style="max-width:140px">
+                <button class="btn btn-outline-secondary btn-minus">−</button>
+                <input type="number" class="form-control text-center qty" value="${it.cantidad}" min="1">
+                <button class="btn btn-outline-secondary btn-plus">+</button>
+              </div>
+            </td>
+            <td class="text-end">${formatCL(it.precio)}</td>
+            <td class="text-end">${formatCL(it.precio * it.cantidad)}</td>
+            <td class="text-end">
+              <button class="btn btn-sm btn-outline-danger btn-del">Quitar</button>
+            </td>
+          </tr>
+        `).join('');
+
+        const total = carrito.reduce((s, i) => s + i.precio * i.cantidad, 0);
+        totalCell.textContent = formatCL(total);
       }
 
-      btnCheckout.disabled = false;
+      // -----------------------------
+      // Eventos + / - / Quitar
+      // -----------------------------
+      tbody.addEventListener('click', (e) => {
+        const tr = e.target.closest('tr[data-id]');
+        if (!tr) return;
+        const id = tr.dataset.id;
 
-      tbody.innerHTML = carrito.map(it => `
-        <tr data-id="${it.id}">
-          <td>${it.nombre}</td>
-          <td class="text-center" style="width:160px">
-            <div class="input-group input-group-sm mx-auto" style="max-width:140px">
-              <button class="btn btn-outline-secondary btn-minus">−</button>
-              <input type="number" class="form-control text-center qty" value="${it.cantidad}" min="1">
-              <button class="btn btn-outline-secondary btn-plus">+</button>
-            </div>
-          </td>
-          <td class="text-end">${formatCL(it.precio)}</td>
-          <td class="text-end item-subtotal">${formatCL(it.precio * it.cantidad)}</td>
-          <td class="text-end">
-            <button class="btn btn-sm btn-outline-danger btn-del">Quitar</button>
-          </td>
-        </tr>
-      `).join('');
+        let carrito = getCarrito();
+        const item = carrito.find(p => p.id === id);
+        if (!item) return;
 
-      const total = carrito.reduce((s,i)=> s + i.precio * i.cantidad, 0);
-      totalCell.textContent = formatCL(total);
-    }
+        if (e.target.classList.contains('btn-minus')) {
+          item.cantidad = Math.max(1, item.cantidad - 1);
+        } else if (e.target.classList.contains('btn-plus')) {
+          item.cantidad += 1;
+        } else if (e.target.classList.contains('btn-del')) {
+          carrito = carrito.filter(p => p.id !== id);
+          saveCarrito(carrito);
+          renderCarrito();
+          return;
+        }
 
-    // ================================
-    // Eventos + / − / Quitar
-    // ================================
-    tbody.addEventListener('click', (e) => {
-      const tr = e.target.closest('tr[data-id]');
-      if (!tr) return;
-      const id = tr.dataset.id;
-
-      let carrito = getCarrito();
-      const item = carrito.find(p => p.id === id);
-      if (!item) return;
-
-      if (e.target.classList.contains('btn-minus')) {
-        item.cantidad = Math.max(1, item.cantidad - 1);
-      }
-      if (e.target.classList.contains('btn-plus')) {
-        item.cantidad += 1;
-      }
-      if (e.target.classList.contains('btn-del')) {
-        carrito = carrito.filter(p => p.id !== id);
         saveCarrito(carrito);
         renderCarrito();
-        return;
-      }
+      });
 
-      saveCarrito(carrito);
-      renderCarrito();
-    });
+      tbody.addEventListener('change', (e) => {
+        if (!e.target.classList.contains('qty')) return;
+        const tr  = e.target.closest('tr[data-id]');
+        const id  = tr.dataset.id;
+        const qty = Math.max(1, parseInt(e.target.value || 1, 10));
 
-    // Cambio manual de cantidad
-    tbody.addEventListener('change', (e) => {
-      const tr = e.target.closest('tr[data-id]');
-      if (!tr || !e.target.classList.contains('qty')) return;
+        const carrito = getCarrito();
+        const item = carrito.find(p => p.id === id);
+        if (!item) return;
 
-      const id  = tr.dataset.id;
-      const qty = Math.max(1, parseInt(e.target.value || 1, 10));
+        item.cantidad = qty;
+        saveCarrito(carrito);
+        renderCarrito();
+      });
 
-      const carrito = getCarrito();
-      const item = carrito.find(p => p.id === id);
-      if (!item) return;
+      // -----------------------------
+      // Confirmar pedido (POST /api/pedidos)
+      // -----------------------------
+      btnCheckout.addEventListener('click', async () => {
+        const user    = getSession(); // de app.js
+        const carrito = getCarrito();
 
-      item.cantidad = qty;
-      saveCarrito(carrito);
-      renderCarrito();
-    });
+        orderMsg.className = 'mt-2 small';
 
-    // ================================
-    // Confirmar pedido → POST /api/pedidos
-    // ================================
-    btnCheckout.addEventListener('click', async () => {
-      const user    = getSession();         // viene de app.js
-      const carrito = getCarrito();
-
-      orderMsg.className = 'mt-2 small';
-
-      if (!user){
-        orderMsg.textContent = 'Debes iniciar sesión para confirmar el pedido.';
-        orderMsg.classList.add('text-danger');
-        return;
-      }
-      if (!carrito.length){
-        orderMsg.textContent = 'Tu carrito está vacío.';
-        orderMsg.classList.add('text-danger');
-        return;
-      }
-
-      orderMsg.textContent = 'Enviando pedido…';
-      orderMsg.classList.remove('text-danger', 'text-success');
-      orderMsg.classList.add('text-muted');
-
-      try {
-        const res = await fetch(API_PEDIDOS, {
-          method: 'POST',
-          headers: { 'Content-Type':'application/json' },
-          body: JSON.stringify({
-            userId: user._id,
-            items: carrito
-          })
-        });
-
-        const data = await res.json().catch(() => ({}));
-
-        if (!res.ok || data.ok === false){
-          orderMsg.textContent = data.msg || 'Error al crear el pedido.';
-          orderMsg.classList.remove('text-muted');
+        if (!user) {
+          orderMsg.textContent = 'Debes iniciar sesión para confirmar el pedido.';
+          orderMsg.classList.add('text-danger');
+          return;
+        }
+        if (!carrito.length) {
+          orderMsg.textContent = 'Tu carrito está vacío.';
           orderMsg.classList.add('text-danger');
           return;
         }
 
-        // ✅ Pedido creado correctamente en la API
-        const pedidoCreado = data.pedido || data;   // ajusta si tu API devuelve otra estructura
-        localStorage.setItem('mariachi_pedido_actual', JSON.stringify(pedidoCreado));
+        orderMsg.textContent = 'Enviando pedido…';
+        orderMsg.classList.remove('text-danger', 'text-success');
+        orderMsg.classList.add('text-muted');
 
-        // Vaciar carrito
-        saveCarrito([]);
-        renderCarrito();
+        try {
+          const res = await fetch(API_PEDIDOS, {
+            method: 'POST',
+            headers: { 'Content-Type':'application/json' },
+            body: JSON.stringify({
+              userId: user._id,
+              items: carrito
+            })
+          });
 
-        orderMsg.textContent = '✅ Pedido confirmado correctamente. Redirigiendo…';
-        orderMsg.classList.remove('text-muted');
-        orderMsg.classList.add('text-success');
+          const data = await res.json().catch(() => ({}));
 
-        // Ir a B13 (ajusta nombre real del archivo si es distinto)
-        setTimeout(() => {
-          window.location.href = 'B13pedidoConfirmar.html';
-        }, 800);
+          if (!res.ok || data.ok === false) {
+            orderMsg.textContent = (data && data.msg) || 'Error al crear el pedido.';
+            orderMsg.classList.remove('text-muted');
+            orderMsg.classList.add('text-danger');
+            return;
+          }
 
-      } catch (err){
-        console.error('Error al enviar pedido:', err);
-        orderMsg.textContent = 'Error de red al contactar la API.';
-        orderMsg.classList.remove('text-muted');
-        orderMsg.classList.add('text-danger');
-      }
+          // Guardar id de pedido para B14
+          localStorage.setItem('mariachi_pedido_id', data.id || data._id || '');
+
+          // IMPORTANTE: NO vaciamos el carrito aquí
+          // El carrito se vacía recién cuando el pago es aprobado en B14.
+
+          orderMsg.textContent = '✅ Pedido confirmado. Redirigiendo al pago…';
+          orderMsg.classList.remove('text-muted');
+          orderMsg.classList.add('text-success');
+
+          setTimeout(() => {
+            window.location.href = 'B14pago.html';
+          }, 800);
+
+        } catch (err) {
+          console.error('Error al enviar pedido:', err);
+          orderMsg.textContent = 'Error de red al contactar la API.';
+          orderMsg.classList.remove('text-muted');
+          orderMsg.classList.add('text-danger');
+        }
+      });
+
+      // init
+      renderCarrito();
     });
-
-    // ================================
-    // Init
-    // ================================
-    renderCarrito();
   </script>
 </body>
 </html>
